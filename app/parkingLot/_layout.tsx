@@ -18,6 +18,13 @@ export default function ParkingLotLayout() {
           fontWeight: 'bold',
         },
       }}
-    />
+    >
+      <Stack.Screen 
+        name="index" 
+        options={{ 
+          title: 'Vagas de Estacionamento' 
+        }} 
+      />
+    </Stack>
   );
 }
