@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -8,12 +9,52 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Alert,
 } from "react-native";
 
 export default function RegisterScreen() {
   const router = useRouter();
 
-  return (
+  
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [userType, setUserType] = useState<"USER" | "ADMIN">("USER"); // default
+
+   async function handleRegister() {
+    try {
+      const response = await fetch("https://meu-condo.vercel.app/users/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName,
+          email,
+          password,
+          username,
+          phoneNumber,
+          cpf,
+          userType,
+        }),
+      });
+
+      if (response.ok) {
+        Alert.alert("Sucesso", "Cadastro realizado com sucesso!");
+        router.push("/login");
+      } else {
+        const errorData = await response.json();
+        Alert.alert("Erro", errorData.message || "Erro ao cadastrar");
+      }
+    } catch (err) {
+      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+      console.error(err);
+    }
+  }
+
+
+ return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -29,45 +70,67 @@ export default function RegisterScreen() {
 
           <Text style={styles.formLabel}>Cadastre-se para continuar</Text>
 
-          <TextInput placeholder="Nome" style={styles.input} placeholderTextColor="#ccc" />
+          <TextInput
+            placeholder="Nome completo"
+            style={styles.input}
+            placeholderTextColor="#ccc"
+            value={fullName}
+            onChangeText={setFullName}
+          />
           <TextInput
             placeholder="E-Mail"
             style={styles.input}
             placeholderTextColor="#ccc"
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
           <TextInput
             placeholder="Senha"
             style={styles.input}
             placeholderTextColor="#ccc"
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
           <TextInput
             placeholder="Nome de Usuário"
             style={styles.input}
             placeholderTextColor="#ccc"
+            value={username}
+            onChangeText={setUsername}
           />
           <TextInput
             placeholder="Número de telefone"
             style={styles.input}
             placeholderTextColor="#ccc"
             keyboardType="phone-pad"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
           />
           <TextInput
             placeholder="CPF"
             style={styles.input}
             placeholderTextColor="#ccc"
             keyboardType="numeric"
+            value={cpf}
+            onChangeText={setCpf}
           />
 
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity style={styles.button} onPress={handleRegister}>
             <Text style={styles.buttonText}>Cadastrar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.roleButton}>
+          <TouchableOpacity style={styles.roleButton} onPress={() => setUserType("USER")}>
             <Text style={styles.roleText}>Sou Morador</Text>
           </TouchableOpacity>
+
+          {/* Se quiser trocar para síndico futuramente:
+          <TouchableOpacity onPress={() => setUserType("MANAGER")}>
+            <Text style={{ color: "#fff", marginTop: 8 }}>Sou Síndico</Text>
+          </TouchableOpacity>
+          */}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
