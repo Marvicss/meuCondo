@@ -1,15 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Button,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Button
 } from 'react-native';
 import PieChart from 'react-native-pie-chart';
 
@@ -30,7 +31,7 @@ interface ChartDataItem {
 
 // --- INTERRUPTOR DE SIMULAÇÃO (MOCK) ---
 // Para ver a tela com dados falsos (e evitar o erro "Failed to fetch"), deixe `true`.
-// Para tentar conectar ao backend real, mude para `false`.
+// Para tentar conectar ao backend real (quando ele estiver funcionando), mude para `false`.
 const IS_MOCK_MODE = true;
 
 // --- DADOS FALSOS PARA O MODO DE SIMULAÇÃO ---
@@ -75,7 +76,7 @@ const PieChartComponent: any = PieChart;
 const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
     if (!data || data.length === 0) return null;
     
-    // CORREÇÃO: A biblioteca espera um único array na propriedade 'series',
+    // A biblioteca espera um único array na propriedade 'series',
     // onde cada objeto contém seu próprio valor e cor.
     const seriesData = data.map(item => ({
         value: item.value,
@@ -87,7 +88,7 @@ const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
         <Text style={styles.chartTitle}>Gastos Gerais</Text>
         <PieChartComponent
             widthAndHeight={180}
-            series={seriesData} // Passamos o array de objetos aqui
+            series={seriesData}
         />
       </View>
     );
@@ -104,11 +105,11 @@ export default function PrestacaoDeContasScreen() {
     // Se o modo de simulação estiver ativo, usamos os dados falsos e paramos aqui.
     if (IS_MOCK_MODE) {
       setLoading(true);
-      setTimeout(() => { // Um pequeno delay para simular o carregamento
+      setTimeout(() => {
         setExpenses(MOCK_EXPENSES);
         setChartData(MOCK_CHART_DATA);
         setLoading(false);
-      }, 1000); // 1 segundo de "loading"
+      }, 1000);
       return;
     }
 
