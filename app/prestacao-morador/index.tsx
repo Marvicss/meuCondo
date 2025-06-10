@@ -14,6 +14,8 @@ import PieChart from 'react-native-pie-chart';
 // Importa o AsyncStorage para ler os dados que a tela de Login salvou
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+// NOVO: Importa o componente do menu inferior a partir da pasta de componentes
+import BottomMenu from '../../components/BottomMenu';
 
 
 // --- DEFINIÇÃO DE TIPOS (TYPESCRIPT) ---
@@ -217,28 +219,30 @@ export default function PrestacaoDeContasScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.headerTitle}>Prestação de Contas</Text>
-        <View style={styles.filterContainer}>
-          <TextInput 
-            placeholder="Pesquisar por Mês/Ano (ex: 06/2025)" 
-            style={styles.input} 
-            placeholderTextColor="#9CA3AF"
-            value={monthYearFilter}
-            onChangeText={setMonthYearFilter}
-          />
-        </View>
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.headerTitle}>Prestação de Contas</Text>
+            <View style={styles.filterContainer}>
+            <TextInput 
+                placeholder="Pesquisar por Mês/Ano (ex: 06/2025)" 
+                style={styles.input} 
+                placeholderTextColor="#9CA3AF"
+                value={monthYearFilter}
+                onChangeText={setMonthYearFilter}
+            />
+            </View>
 
-        <Text style={styles.sectionTitle}>Gastos do Período</Text>
-        {filteredExpenses.length > 0 ? (
-          filteredExpenses.map((expense) => <ExpenseCard key={expense.id} expense={expense} />)
-        ) : (
-          <Text style={styles.infoText}>
-            {originalExpenses.length > 0 ? 'Nenhuma despesa encontrada para este filtro.' : 'Nenhuma despesa cadastrada.'}
-          </Text>
-        )}
-        <GeneralExpensesChart data={chartData} />
-      </ScrollView>
+            <Text style={styles.sectionTitle}>Gastos do Período</Text>
+            {filteredExpenses.length > 0 ? (
+            filteredExpenses.map((expense) => <ExpenseCard key={expense.id} expense={expense} />)
+            ) : (
+            <Text style={styles.infoText}>
+                {originalExpenses.length > 0 ? 'Nenhuma despesa encontrada para este filtro.' : 'Nenhuma despesa cadastrada.'}
+            </Text>
+            )}
+            <GeneralExpensesChart data={chartData} />
+        </ScrollView>
+        {/* NOVO: Adiciona o menu inferior à tela */}
+        <BottomMenu />
     </SafeAreaView>
   );
 }
