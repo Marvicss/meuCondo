@@ -47,6 +47,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <FontAwesome name="car" size={28} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="parkingLot"
+        options={{
+          title: 'Estacionamento',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <FontAwesome name="car" size={28} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

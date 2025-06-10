@@ -5,3 +5,5 @@ export default function AppRootRedirect() {
 
   return <Redirect href="/login" />;
 }
+
+
