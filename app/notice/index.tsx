@@ -1,17 +1,20 @@
-import React, { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { StyleSheet, ScrollView, View, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, Card, Text, Chip, useTheme } from 'react-native-paper';
+import BottomMenu from "@/components/BottomMenu";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Card, Chip, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Interfaces
-interface Aviso {
-  id: number;
-  tipo: string;
-  mensagem: string;
-  cor?: string; 
+interface News {
+  id: string;
+  condominiumId: string;
+  type: string;
+  message: string;
+  createdAt: string;
+   
 }
 
 interface DecodedToken { userId: string; email: string; userType: string; iat: number; exp: number; }
@@ -19,7 +22,7 @@ interface DecodedToken { userId: string; email: string; userType: string; iat: n
 export default function QuadroAvisos() {
   const theme = useTheme();
   const [selectedType, setSelectedType] = useState('Todos');
-  const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [avisos, setAvisos] = useState<News[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<DecodedToken | null>(null); // Mantido para consistência
@@ -69,7 +72,7 @@ export default function QuadroAvisos() {
             return;
           }
 
-          const data: Aviso[] = await response.json();
+          const data: News[] = await response.json();
 
           if (!Array.isArray(data)) {
             Alert.alert("Erro", "Resposta inesperada do servidor para avisos.");
@@ -81,7 +84,7 @@ export default function QuadroAvisos() {
           // Mapear os tipos de avisos para cores
           const avisosComCores = data.map(aviso => {
             let cor = '#BDBDBD'; // Cor padrão
-            switch (aviso.tipo) {
+            switch (aviso.type) {
               case 'Urgente':
                 cor = '#D32F2F';
                 break;
@@ -98,8 +101,9 @@ export default function QuadroAvisos() {
             }
             return { ...aviso, cor };
           });
-
+          console.log(avisosComCores);
           setAvisos(avisosComCores);
+  
         } catch (e: any) {
           // Tratamento de erros de rede ou outros
           Alert.alert("Erro de Conexão", "Não foi possível conectar ao servidor. Verifique sua internet ou tente novamente.");
@@ -109,7 +113,7 @@ export default function QuadroAvisos() {
           setLoading(false);
         }
       };
-
+      
       fetchAvisos();
     }, [])
   );
@@ -118,7 +122,7 @@ export default function QuadroAvisos() {
     if (selectedType === 'Todos') {
       return true;
     }
-    return aviso.tipo === selectedType;
+    return aviso.type === selectedType;
   });
 
   if (loading) {
@@ -206,16 +210,17 @@ export default function QuadroAvisos() {
           filteredAvisos.map(aviso => (
             <Card key={aviso.id} style={{ backgroundColor: aviso.cor || theme.colors.surface, marginBottom: 16 }}>
               <Card.Title
-                title={aviso.tipo}
+                title={aviso.type}
                 left={() => <View style={[styles.colorBar, { backgroundColor: aviso.cor || '#BDBDBD' }]} />}
               />
               <Card.Content>
-                <Text variant="bodyMedium">{aviso.mensagem}</Text>
+                <Text variant="bodyMedium">{aviso.message}</Text>
               </Card.Content>
             </Card>
           ))
         )}
       </ScrollView>
+      <BottomMenu />
     </SafeAreaView>
   );
 }
