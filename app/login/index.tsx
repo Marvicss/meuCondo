@@ -1,15 +1,16 @@
-import { Link, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-  Alert
+  View
 } from "react-native";
 
 export default function LoginScreen() {
@@ -35,6 +36,7 @@ export default function LoginScreen() {
       const data = await response.json();
       // Salve o token no AsyncStorage, Context, Redux, ou onde preferir
       console.log("Token recebido:", data.token);
+      await AsyncStorage.setItem("token", data.token);
       // Navegue para a tela principal após login
       router.replace("/home");
     } catch (error) {
