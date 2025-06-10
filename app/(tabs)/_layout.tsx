@@ -1,8 +1,8 @@
 // app/(tabs)/_layout.tsx - VERSÃO CORRIGIDA PARA A NOVA ESTRUTURA
 
-import React from 'react';
-import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import React from 'react';
 
 export default function TabLayout() {
   return (
