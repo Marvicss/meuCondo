@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#2F80ED", // Fundo azul
+    backgroundColor: "##FFFFFF", // Fundo azul
   },
   title: {
     fontSize: 24,
