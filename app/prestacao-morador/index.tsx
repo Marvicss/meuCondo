@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
   ActivityIndicator,
   Alert,
-  Platform,
-  Button
+  Button,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 import PieChart from 'react-native-pie-chart';
 
@@ -29,26 +27,15 @@ interface ChartDataItem {
   color: string;
 }
 
-// --- INTERRUPTOR DE SIMULAÇÃO (MOCK) ---
-// Para ver a tela com dados falsos (e evitar o erro "Failed to fetch"), deixe `true`.
-// Para tentar conectar ao backend real (quando ele estiver funcionando), mude para `false`.
-const IS_MOCK_MODE = true;
-
-// --- DADOS FALSOS PARA O MODO DE SIMULAÇÃO ---
-const MOCK_EXPENSES: Expense[] = [
-  { id: '1', date: '2025-06-10T00:00:00.000Z', amount: 7500, title: 'Manutenção Preventiva do Elevador', type: 'EXPENSE' },
-  { id: '2', date: '2025-06-05T00:00:00.000Z', amount: 1230.50, title: 'Material de Limpeza (Mês)', type: 'EXPENSE' },
-  { id: '3', date: '2025-05-28T00:00:00.000Z', amount: 3200, title: 'Pintura do hall do Bloco A', type: 'EXPENSE' },
-];
-
-const MOCK_CHART_DATA: ChartDataItem[] = [
-    { label: 'Manutenção', value: 52.5, color: '#3B82F6' },
-    { label: 'Obras', value: 24.7, color: '#A78BFA' },
-    { label: 'Limpeza', value: 22.8, color: '#FACC15' },
-];
+// Interface para um objeto Condomínio, como vem da API
+interface Condominium {
+    id: string;
+    name: string;
+    // ...outras propriedades do condomínio
+}
 
 
-// --- COMPONENTE VISUAL: CARTÃO DE DESPESA ---
+// --- COMPONENTES VISUAIS (ExpenseCard e GeneralExpensesChart) ---
 const ExpenseCard = ({ expense }: { expense: Expense }) => {
   const formatCurrency = (value: number): string => {
     if (!value && value !== 0) return "R$ 0,00";
@@ -71,85 +58,123 @@ const ExpenseCard = ({ expense }: { expense: Expense }) => {
   );
 };
 
-// --- COMPONENTE VISUAL: GRÁFICO DE PIZZA ---
 const PieChartComponent: any = PieChart;
 const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
     if (!data || data.length === 0) return null;
-    
-    // A biblioteca espera um único array na propriedade 'series',
-    // onde cada objeto contém seu próprio valor e cor.
-    const seriesData = data.map(item => ({
-        value: item.value,
-        color: item.color
-    }));
-
+    const seriesData = data.map(item => ({ value: item.value, color: item.color }));
     return (
       <View style={styles.chartComponentContainer}>
-        <Text style={styles.chartTitle}>Gastos Gerais</Text>
-        <PieChartComponent
-            widthAndHeight={180}
-            series={seriesData}
-        />
+        <Text style={styles.chartTitle}>Resumo dos Gastos</Text>
+        <View style={styles.chartAndLegendWrapper}>
+            <PieChartComponent widthAndHeight={150} series={seriesData} />
+            {/* LEGENDA ADICIONADA AQUI */}
+            <View style={styles.legendContainer}>
+                {data.map((item) => (
+                <View key={item.label} style={styles.legendItem}>
+                    <View style={[styles.legendColorBox, { backgroundColor: item.color }]} />
+                    <Text style={styles.legendText}>{`${item.label} (${item.value}%)`}</Text>
+                </View>
+                ))}
+            </View>
+        </View>
       </View>
     );
   };
 
 // --- A TELA PRINCIPAL ---
 export default function PrestacaoDeContasScreen() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  // Estado para os dados originais do backend
+  const [originalExpenses, setOriginalExpenses] = useState<Expense[]>([]);
+  // Estado para o texto do filtro
+  const [monthYearFilter, setMonthYearFilter] = useState<string>('');
+  // Estado para os dados que serão exibidos na tela (já filtrados)
+  const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
+  
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchAccountabilityData() {
-    // Se o modo de simulação estiver ativo, usamos os dados falsos e paramos aqui.
-    if (IS_MOCK_MODE) {
-      setLoading(true);
-      setTimeout(() => {
-        setExpenses(MOCK_EXPENSES);
-        setChartData(MOCK_CHART_DATA);
-        setLoading(false);
-      }, 1000);
-      return;
+  // useEffect para aplicar o filtro na lista quando o texto muda
+  useEffect(() => {
+    if (monthYearFilter.trim() === '') {
+        setFilteredExpenses(originalExpenses);
+    } else {
+        const filtered = originalExpenses.filter(expense => {
+            const expenseDate = new Date(expense.date);
+            const month = (expenseDate.getMonth() + 1).toString().padStart(2, '0');
+            const year = expenseDate.getFullYear().toString();
+            const formattedDate = `${month}/${year}`;
+            return formattedDate.includes(monthYearFilter);
+        });
+        setFilteredExpenses(filtered);
+    }
+  }, [monthYearFilter, originalExpenses]);
+
+  // useEffect para recalcular o gráfico quando a lista filtrada muda
+  useEffect(() => {
+    if (filteredExpenses.length === 0) {
+        setChartData([]);
+        return;
     }
 
-    // Se IS_MOCK_MODE for false, o código abaixo tenta conectar ao backend real.
+    const grouped = filteredExpenses.reduce((acc, expense) => {
+        const key = expense.title;
+        if (!acc[key]) acc[key] = { total: 0, color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}` };
+        acc[key].total += expense.amount;
+        return acc;
+    }, {} as { [key: string]: { total: number, color: string } });
+
+    const totalAmount = Object.values(grouped).reduce((sum, item) => sum + item.total, 0);
+    
+    if (totalAmount === 0) {
+        setChartData([]);
+        return;
+    }
+
+    const calculatedChartData: ChartDataItem[] = Object.entries(grouped).map(([label, data]) => ({
+        label, value: parseFloat(((data.total / totalAmount) * 100).toFixed(1)), color: data.color
+    }));
+
+    setChartData(calculatedChartData);
+  }, [filteredExpenses]); // Roda sempre que a lista de despesas filtradas mudar
+
+  async function fetchAccountabilityData() {
     setLoading(true);
     setError(null);
     try {
+      // ETAPA A: FAZENDO O LOGIN PARA OBTER O TOKEN
       const loginResponse = await fetch("https://meu-condo.vercel.app/auth/login", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: "bmfmlucas@gmail.com", password: "senhaSegura123" }),
       });
-      if (!loginResponse.ok) throw new Error("Falha ao autenticar para buscar dados.");
-      const { token, user }: { token: string; user: { condominiumId: string } } = await loginResponse.json();
+      if (!loginResponse.ok) throw new Error("Falha ao autenticar com o servidor.");
+      const { token } = await loginResponse.json();
+      if (!token) throw new Error("Token não recebido do servidor.");
 
+      // ETAPA B: BUSCAR TODOS OS CONDOMÍNIOS
+      const condosResponse = await fetch("https://meu-condo.vercel.app/condominiums/", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!condosResponse.ok) throw new Error("Não foi possível buscar a lista de condomínios.");
+      const condominiums: Condominium[] = await condosResponse.json();
+      if (!condominiums || condominiums.length === 0) throw new Error("Nenhum condomínio encontrado no sistema.");
+      
+      const condominiumIdParaTeste = condominiums[0].id;
+
+      // ETAPA C: BUSCAR AS PRESTAÇÕES DE CONTAS COM O ID OBTIDO
       const expensesResponse = await fetch(
-        `https://meu-condo.vercel.app/accountabilities/condominium/${user.condominiumId}`,
+        `https://meu-condo.vercel.app/accountabilities/condominium/${condominiumIdParaTeste}`,
         { headers: { "Authorization": `Bearer ${token}` } }
       );
       if (!expensesResponse.ok) throw new Error("Não foi possível buscar as prestações de contas.");
       const allData: Expense[] = await expensesResponse.json();
       const expensesOnly = allData.filter(item => item.type === 'EXPENSE');
-      setExpenses(expensesOnly);
-
-      if (expensesOnly.length > 0) {
-        const grouped = expensesOnly.reduce((acc, expense) => {
-            const key = expense.title;
-            if (!acc[key]) acc[key] = { total: 0, color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}` };
-            acc[key].total += expense.amount;
-            return acc;
-        }, {} as { [key: string]: { total: number, color: string } });
-        const totalAmount = Object.values(grouped).reduce((sum, item) => sum + item.total, 0);
-        const calculatedChartData: ChartDataItem[] = Object.entries(grouped).map(([label, data]) => ({
-            label, value: parseFloat(((data.total / totalAmount) * 100).toFixed(1)), color: data.color
-        }));
-        setChartData(calculatedChartData);
-      }
+      setOriginalExpenses(expensesOnly);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Um erro desconhecido ocorreu.";
       setError(errorMessage);
-      Alert.alert("Erro de Conexão", errorMessage);
+      Alert.alert("Erro", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -180,15 +205,22 @@ export default function PrestacaoDeContasScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.headerTitle}>Prestação de Contas</Text>
         <View style={styles.filterContainer}>
-          <TextInput placeholder="Mês/Ano" style={styles.input} placeholderTextColor="#9CA3AF" />
-          <TouchableOpacity style={styles.searchButton}><Text style={styles.searchButtonText}>Buscar</Text></TouchableOpacity>
+          <TextInput 
+            placeholder="Pesquisar por Mês/Ano (ex: 06/2025)" 
+            style={styles.input} 
+            placeholderTextColor="#9CA3AF"
+            value={monthYearFilter}
+            onChangeText={setMonthYearFilter}
+          />
         </View>
 
-        <Text style={styles.sectionTitle}>Lista de Gastos</Text>
-        {expenses.length > 0 ? (
-          expenses.map((expense) => <ExpenseCard key={expense.id} expense={expense} />)
+        <Text style={styles.sectionTitle}>Gastos do Período</Text>
+        {filteredExpenses.length > 0 ? (
+          filteredExpenses.map((expense) => <ExpenseCard key={expense.id} expense={expense} />)
         ) : (
-          <Text style={styles.infoText}>Nenhuma despesa encontrada.</Text>
+          <Text style={styles.infoText}>
+            {originalExpenses.length > 0 ? 'Nenhuma despesa encontrada para este filtro.' : 'Nenhuma despesa cadastrada.'}
+          </Text>
         )}
         <GeneralExpensesChart data={chartData} />
       </ScrollView>
@@ -203,9 +235,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6', padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827', textAlign: 'center', marginBottom: 24 },
   filterContainer: { backgroundColor: '#FFFFFF', padding: 16, borderRadius: 8, marginBottom: 24, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, },
-  input: { borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, marginBottom: 12 },
-  searchButton: { backgroundColor: '#2563EB', paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
-  searchButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1F2937', marginBottom: 16 },
   infoText: { textAlign: 'center', paddingVertical: 20, color: '#6B7280' },
   errorText: { textAlign: 'center', color: 'red', marginVertical: 5, fontSize: 16 },
@@ -218,4 +248,31 @@ const styles = StyleSheet.create({
   expenseTitle: { fontSize: 18, fontWeight: '600', color: '#111827' },
   chartComponentContainer: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 20, marginTop: 20, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
   chartTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: '#1F2937' },
+  // Estilos adicionados para a legenda
+  chartAndLegendWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    justifyContent: 'space-around',
+  },
+  legendContainer: {
+    marginLeft: 20,
+    flex: 1,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  legendColorBox: {
+    width: 14,
+    height: 14,
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#374151',
+    flexShrink: 1, // Permite que o texto quebre a linha se necessário
+  },
 });
