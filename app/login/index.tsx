@@ -36,7 +36,7 @@ export default function LoginScreen() {
       // Salve o token no AsyncStorage, Context, Redux, ou onde preferir
       console.log("Token recebido:", data.token);
       // Navegue para a tela principal após login
-      router.replace("/home");
+      router.replace("/");
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
       console.error(error);

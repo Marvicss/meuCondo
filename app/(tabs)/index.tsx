@@ -1,13 +1,7 @@
-// app/index.tsx
-import { useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { Redirect } from 'expo-router'; 
+import React from 'react'; 
 
-export default function Index() {
-  const router = useRouter();
+export default function AppRootRedirect() {
 
-  useEffect(() => {
-    router.replace('/inicio');
-  }, []);
-
-  return null;
+  return <Redirect href="/login" />;
 }
