@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
-import BottomTabBar from '../../components/BottomTabBar';
 
 const COLORS = {
   primaryBlue: '#2F80ED',
@@ -10,7 +9,7 @@ const COLORS = {
 
 export default function ParkingLotLayout() {
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 , paddingBottom: 40 }}>
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: COLORS.primaryBlue },
@@ -24,8 +23,6 @@ export default function ParkingLotLayout() {
         <Stack.Screen name="new" options={{ title: 'Criar Nova Vaga' }} />
         <Stack.Screen name="edit/[id]" options={{ title: 'Editar Vaga' }} />
       </Stack>
-
-      <BottomTabBar />
     </View>
   );
 }

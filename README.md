@@ -1,3 +1,17 @@
+
+# Atividade React_Native - UNICAP
+
+# Integrantes do grupo
+
+1. Marconi Victor
+2. Lucas Bomfim
+3. Rayanne Belanger
+4. Vanessa Lins
+5. Anderson Lucas
+6. Elias Junior
+
+
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).

@@ -1,8 +1,9 @@
+import BottomMenu from '@/components/BottomMenu'; // ✅ Importação do novo menu
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const COLORS = {
   primaryBlue: '#2F80ED',
@@ -97,9 +98,11 @@ export default function ParkingLotIndexScreen() {
         refreshing={loading}
         onRefresh={fetchParkingLots}
       />
-      <TouchableOpacity style={styles.fab} onPress={() => router.push('/parkingLot/new')}>
-        <FontAwesome name="plus" size={24} color={COLORS.white} />
-      </TouchableOpacity>
+
+      {/* ✅ Removido o botão de criação */}
+
+      {/* ✅ Menu inferior incluído */}
+      <BottomMenu />
     </View>
   );
 }
@@ -107,23 +110,21 @@ export default function ParkingLotIndexScreen() {
 const styles = StyleSheet.create({
   screenContainer: { flex: 1, backgroundColor: COLORS.backgroundLight },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  itemContainer: { backgroundColor: 'white', padding: 16, marginHorizontal: 16, marginVertical: 8, borderRadius: 10, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
+  itemContainer: {
+    backgroundColor: 'white',
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
   itemHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   itemSpotNumber: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, marginLeft: 10 },
   itemDetail: { fontSize: 15, color: COLORS.textSecondary, marginBottom: 12, marginTop: 4 },
   statusBadge: { paddingVertical: 5, paddingHorizontal: 12, borderRadius: 20, alignSelf: 'flex-start' },
   statusText: { color: 'white', fontWeight: 'bold' },
   emptyText: { marginTop: 16, fontSize: 16, color: COLORS.textSecondary },
-  fab: {
-    position: 'absolute',
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    right: 20,
-    bottom: 20,
-    backgroundColor: COLORS.primaryBlue,
-    borderRadius: 30,
-    elevation: 8,
-  },
 });
