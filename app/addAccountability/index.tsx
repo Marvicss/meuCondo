@@ -1,274 +1,293 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from "@react-native-picker/picker";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
+  Button,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+  View
+} from 'react-native';
+import PieChart from 'react-native-pie-chart';
+// Importa o AsyncStorage para ler os dados que a tela de Login salvou
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
-interface Condominium {
+
+// --- DEFINIÇÃO DE TIPOS (TYPESCRIPT) ---
+interface Expense {
   id: string;
-  name: string;
-  cnpj: string;
-  address: string;
-  email: string;
-  phoneNumber: string;
-  createdAt: string;
-  updatedAt: string;
+  date: string;
+  amount: number;
+  title: string;
+  type: 'EXPENSE' | 'INCOME';
 }
 
-export default function AddAccountability() {
-  const router = useRouter();
+interface ChartDataItem {
+  label: string;
+  value: number;
+  color: string;
+}
 
-  const [condominiums, setCondominiums] = useState<Condominium[]>([]);
-  const [selectedCondoId, setSelectedCondoId] = useState("");
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState("EXPENSE");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
+// Interface para um objeto Condomínio, como vem da API
+interface Condominium {
+    id: string;
+    name: string;
+    // ...outras propriedades do condomínio
+}
 
-  useEffect(() => {
-    async function fetchCondominiums() {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) {
-          Alert.alert("Erro", "Token não encontrado. Faça login novamente.");
-          return;
-        }
 
-        const response = await fetch("https://meu-condo.vercel.app/condominiums/", {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+// --- COMPONENTES VISUAIS (ExpenseCard e GeneralExpensesChart) ---
+// (Nenhuma mudança necessária aqui, eles continuam os mesmos)
+const ExpenseCard = ({ expense }: { expense: Expense }) => {
+  const formatCurrency = (value: number): string => {
+    if (!value && value !== 0) return "R$ 0,00";
+    if (value >= 1000 && value < 1000000) return `${(value / 1000).toFixed(0)} Mil`;
+    return `R$ ${Number(value).toFixed(2).replace('.', ',')}`;
+  };
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(date);
+  };
+  return (
+    <View style={styles.cardContainer}>
+      <View style={styles.topRow}>
+        <View style={styles.dateBox}><Text style={styles.dateText}>{formatDate(expense.date)}</Text></View>
+        <View style={styles.valueBox}><Text style={styles.valueText}>{formatCurrency(expense.amount)}</Text></View>
+      </View>
+      <Text style={styles.expenseTitle}>{expense.title}</Text>
+    </View>
+  );
+};
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          Alert.alert("Erro ao carregar", errorData.message || "Erro desconhecido");
-          return;
-        }
-
-        const data = await response.json();
-
-        if (!Array.isArray(data)) {
-          Alert.alert("Erro", "Resposta inesperada do servidor.");
-          console.error("Resposta recebida:", data);
-          return;
-        }
-
-        setCondominiums(data);
-      } catch (error) {
-        Alert.alert("Erro", "Falha ao buscar condomínios");
-        console.error(error);
-      }
-    }
-
-    fetchCondominiums();
-  }, []);
-
-  // Função para converter DD-MM-AAAA para AAAA-MM-DD
-  function convertToISO(dateStr: string): string {
-    const [day, month, year] = dateStr.split("-");
-    return `${year}-${month}-${day}`;
-  }
-
-  const handleDateChange = (text: string) => {
-    // Remove tudo que não for dígito
-    let cleanedText = text.replace(/[^0-9]/g, '');
-
-    let formattedText = '';
-
-    if (cleanedText.length > 0) {
-      formattedText += cleanedText.substring(0, 2); // Dias
-      if (cleanedText.length > 2) {
-        formattedText += '-' + cleanedText.substring(2, 4); // Meses
-      }
-      if (cleanedText.length > 4) {
-        formattedText += '-' + cleanedText.substring(4, 8); // Anos
-      }
-    }
-    setDate(formattedText);
+const PieChartComponent: any = PieChart;
+const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
+    if (!data || data.length === 0) return null;
+    const seriesData = data.map(item => ({ value: item.value, color: item.color }));
+    return (
+      <View style={styles.chartComponentContainer}>
+        <Text style={styles.chartTitle}>Resumo dos Gastos</Text>
+        <View style={styles.chartAndLegendWrapper}>
+            <PieChartComponent widthAndHeight={150} series={seriesData} />
+            {/* LEGENDA ADICIONADA AQUI */}
+            <View style={styles.legendContainer}>
+                {data.map((item) => (
+                <View key={item.label} style={styles.legendItem}>
+                    <View style={[styles.legendColorBox, { backgroundColor: item.color }]} />
+                    <Text style={styles.legendText}>{`${item.label} (${item.value}%)`}</Text>
+                </View>
+                ))}
+            </View>
+        </View>
+      </View>
+    );
   };
 
-  async function handleSubmit() {
-    if (!selectedCondoId) {
-      Alert.alert("Erro", "Selecione um condomínio");
-      return;
+// --- A TELA PRINCIPAL ---
+export default function PrestacaoDeContasScreen() {
+  const router = useRouter();
+  // Estado para os dados originais do backend
+  const [originalExpenses, setOriginalExpenses] = useState<Expense[]>([]);
+  // Estado para o texto do filtro
+  const [monthYearFilter, setMonthYearFilter] = useState<string>('');
+  // Estado para os dados que serão exibidos na tela (já filtrados)
+  const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
+  
+  const [chartData, setChartData] = useState<ChartDataItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // useEffect para aplicar o filtro na lista quando o texto muda
+  useEffect(() => {
+    if (monthYearFilter.trim() === '') {
+        setFilteredExpenses(originalExpenses);
+    } else {
+        const filtered = originalExpenses.filter(expense => {
+            const expenseDate = new Date(expense.date);
+            const month = (expenseDate.getMonth() + 1).toString().padStart(2, '0');
+            const year = expenseDate.getFullYear().toString();
+            const formattedDate = `${month}/${year}`;
+            return formattedDate.includes(monthYearFilter);
+        });
+        setFilteredExpenses(filtered);
+    }
+  }, [monthYearFilter, originalExpenses]);
+
+  // useEffect para recalcular o gráfico quando a lista filtrada muda
+  useEffect(() => {
+    if (filteredExpenses.length === 0) {
+        setChartData([]);
+        return;
     }
 
+    const grouped = filteredExpenses.reduce((acc, expense) => {
+        const key = expense.title;
+        if (!acc[key]) acc[key] = { total: 0, color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}` };
+        acc[key].total += expense.amount;
+        return acc;
+    }, {} as { [key: string]: { total: number, color: string } });
+
+    const totalAmount = Object.values(grouped).reduce((sum, item) => sum + item.total, 0);
+    
+    if (totalAmount === 0) {
+        setChartData([]);
+        return;
+    }
+
+    const calculatedChartData: ChartDataItem[] = Object.entries(grouped).map(([label, data]) => ({
+        label, value: parseFloat(((data.total / totalAmount) * 100).toFixed(1)), color: data.color
+    }));
+
+    setChartData(calculatedChartData);
+  }, [filteredExpenses]); // Roda sempre que a lista de despesas filtradas mudar
+
+  async function fetchAccountabilityData() {
+    setLoading(true);
+    setError(null);
     try {
-      const token = await AsyncStorage.getItem("token");
-
-      const response = await fetch("https://meu-condo.vercel.app/accountabilities/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title,
-          amount: parseFloat(amount),
-          type,
-          description,
-          date: new Date(convertToISO(date)).toISOString(),
-          condominiumId: selectedCondoId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        Alert.alert("Erro", errorData.message || "Falha ao criar conta");
+      // ETAPA A: Pega o token salvo pela tela de Login
+      const token = await AsyncStorage.getItem('token');
+      
+      // Se não encontrar o token, o usuário não está logado.
+      if (!token) {
+        Alert.alert("Acesso Negado", "Você precisa fazer o login para ver esta página.");
+        router.replace('/login'); // Envia o usuário de volta para o login
         return;
       }
 
-      Alert.alert("Sucesso", "Conta criada com sucesso!");
+      // ETAPA B: BUSCAR TODOS OS CONDOMÍNIOS
+      const condosResponse = await fetch("https://meu-condo.vercel.app/condominiums/", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!condosResponse.ok) throw new Error("Não foi possível buscar a lista de condomínios.");
+      const condominiums: Condominium[] = await condosResponse.json();
+      
+      if (!condominiums || condominiums.length === 0) {
+        throw new Error("Nenhum condomínio encontrado no sistema. Cadastre um condomínio primeiro.");
+      }
 
-      // Limpar o formulário
-      setTitle("");
-      setAmount("");
-      setType("EXPENSE");
-      setDescription("");
-      setDate("");
-      setSelectedCondoId("");
+      // ETAPA C (O "DRIBLE"): Usar o ID do PRIMEIRO condomínio da lista para o teste
+      const condominiumIdParaTeste = condominiums[0].id;
 
-    } catch (error) {
-      Alert.alert("Erro", "Erro ao conectar ao servidor");
-      console.error(error);
+
+      // ETAPA D: BUSCAR AS PRESTAÇÕES DE CONTAS COM O ID OBTIDO
+      const expensesResponse = await fetch(
+        `https://meu-condo.vercel.app/accountabilities/condominium/${condominiumIdParaTeste}`,
+        { headers: { "Authorization": `Bearer ${token}` } }
+      );
+      if (!expensesResponse.ok) throw new Error("Não foi possível buscar as prestações de contas para o condomínio selecionado.");
+      const allData: Expense[] = await expensesResponse.json();
+      const expensesOnly = allData.filter(item => item.type === 'EXPENSE');
+      setOriginalExpenses(expensesOnly);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Um erro desconhecido ocorreu.";
+      setError(errorMessage);
+       if (errorMessage.includes("Acesso Negado")) {
+         router.replace('/login');
+      } else {
+        Alert.alert("Erro", errorMessage);
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
+  useEffect(() => {
+    fetchAccountabilityData();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.centered}><ActivityIndicator size="large" color="#2563EB" /><Text style={{ marginTop: 10 }}>Carregando...</Text></View>
+    );
+  }
+  
+  if (error) {
+    return (
+      <View style={styles.centered}>
+          <Text style={styles.errorText}>Ocorreu um erro:</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <Button title="Tentar Novamente" onPress={fetchAccountabilityData} />
+      </View>
+    );
+  }
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <View style={styles.container}>
-          <Text style={styles.title}>Prestação de Conta</Text>
-
-          <Text style={styles.label}>Título</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholderTextColor="#888" // Adicionado para placeholder visível
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.headerTitle}>Prestação de Contas</Text>
+        <View style={styles.filterContainer}>
+          <TextInput 
+            placeholder="Pesquisar por Mês/Ano (ex: 06/2025)" 
+            style={styles.input} 
+            placeholderTextColor="#9CA3AF"
+            value={monthYearFilter}
+            onChangeText={setMonthYearFilter}
           />
-
-          <Text style={styles.label}>Valor</Text>
-          <TextInput
-            style={styles.input}
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="decimal-pad"
-            placeholderTextColor="#888" // Adicionado para placeholder visível
-          />
-
-          <Text style={styles.label}>Tipo</Text>
-          <Picker
-            selectedValue={type}
-            onValueChange={(itemValue) => setType(itemValue)}
-            style={styles.input}
-            itemStyle={styles.pickerItem} // Estilo para os itens do Picker
-          >
-            <Picker.Item label="Despesa" value="EXPENSE" />
-            <Picker.Item label="Receita" value="INCOME" />
-          </Picker>
-
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            multiline
-            value={description}
-            onChangeText={setDescription}
-            placeholderTextColor="#888" // Adicionado para placeholder visível
-          />
-
-          <Text style={styles.label}>Data (DD-MM-AAAA)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="DD-MM-AAAA"
-            value={date}
-            onChangeText={handleDateChange}
-            keyboardType="numeric"
-            placeholderTextColor="#888" // Adicionado para placeholder visível
-            maxLength={10} // Limita a entrada a 10 caracteres (DD-MM-AAAA)
-          />
-
-          <Text style={styles.label}>Condomínio</Text>
-          <Picker
-            selectedValue={selectedCondoId}
-            onValueChange={(value) => setSelectedCondoId(value)}
-            style={styles.input}
-            itemStyle={styles.pickerItem} // Estilo para os itens do Picker
-          >
-            <Picker.Item label="Selecione um condomínio" value="" />
-            {condominiums.map((condo) => (
-              <Picker.Item key={condo.id} label={condo.name} value={condo.id} />
-            ))}
-          </Picker>
-
-          <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Criar Conta</Text>
-          </TouchableOpacity>
         </View>
+
+        <Text style={styles.sectionTitle}>Gastos do Período</Text>
+        {filteredExpenses.length > 0 ? (
+          filteredExpenses.map((expense) => <ExpenseCard key={expense.id} expense={expense} />)
+        ) : (
+          <Text style={styles.infoText}>
+            {originalExpenses.length > 0 ? 'Nenhuma despesa encontrada para este filtro.' : 'Nenhuma despesa cadastrada.'}
+          </Text>
+        )}
+        <GeneralExpensesChart data={chartData} />
       </ScrollView>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
+// --- ESTILOS ---
 const styles = StyleSheet.create({
-  container: {
+  safeArea: { flex: 1, backgroundColor: '#F3F4F6' },
+  container: { padding: 16, paddingBottom: 40 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6', padding: 20 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827', textAlign: 'center', marginBottom: 24 },
+  filterContainer: { backgroundColor: '#FFFFFF', padding: 16, borderRadius: 8, marginBottom: 24, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, },
+  input: { borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: '#F9FAFB', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1F2937', marginBottom: 16 },
+  infoText: { textAlign: 'center', paddingVertical: 20, color: '#6B7280' },
+  errorText: { textAlign: 'center', color: 'red', marginVertical: 5, fontSize: 16 },
+  cardContainer: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+  topRow: { flexDirection: 'row', marginBottom: 12 },
+  dateBox: { backgroundColor: '#3B82F6', borderRadius: 6, paddingVertical: 10, justifyContent: 'center', alignItems: 'center', flex: 1, marginRight: 8 },
+  dateText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
+  valueBox: { backgroundColor: '#FACC15', borderRadius: 6, justifyContent: 'center', alignItems: 'center', flex: 1.5, marginLeft: 8 },
+  valueText: { color: '#374151', fontWeight: 'bold', fontSize: 20 },
+  expenseTitle: { fontSize: 18, fontWeight: '600', color: '#111827' },
+  chartComponentContainer: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 20, marginTop: 20, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
+  chartTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: '#1F2937' },
+  // Estilos adicionados para a legenda
+  chartAndLegendWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    justifyContent: 'space-around',
+  },
+  legendContainer: {
+    marginLeft: 20,
     flex: 1,
-    padding: 24,
-    backgroundColor: "#2F80ED", // Fundo azul
   },
-  title: {
-    fontSize: 24,
-    color: "#fff",
-    fontWeight: "bold",
-    marginBottom: 24,
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  label: {
-    color: "#fff",
-    marginTop: 16,
-    marginBottom: 4, // Espaço entre o label e o input
-    fontWeight: "bold", // Para destacar o label
+  legendColorBox: {
+    width: 14,
+    height: 14,
+    borderRadius: 2,
+    marginRight: 8,
   },
-  input: {
-    backgroundColor: "#fff", // Fundo branco para o input
-    borderWidth: 1, // Adicionado borda para melhor visualização
-    borderColor: "#ccc",
-    borderRadius: 8, // Borda arredondada
-    paddingHorizontal: 12, // Espaçamento interno
-    paddingVertical: 10,
-    marginBottom: 16, // Mais espaço entre os inputs
-    color: "#000", // Cor do texto dentro do input para preto
-  },
-  pickerItem: {
-    color: "#000", // Cor do texto dos itens do Picker para preto
-  },
-  button: {
-    backgroundColor: "#F2C94C",
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 24,
-  },
-  buttonText: {
-    textAlign: "center",
-    fontWeight: "bold",
-    color: "#2F80ED",
-    fontSize: 16, // Aumentado para melhor leitura
+  legendText: {
+    fontSize: 12,
+    color: '#374151',
+    flexShrink: 1, // Permite que o texto quebre a linha se necessário
   },
 });

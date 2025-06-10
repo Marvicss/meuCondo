@@ -11,6 +11,12 @@ import {
   View
 } from 'react-native';
 import PieChart from 'react-native-pie-chart';
+// Importa o AsyncStorage para ler os dados que a tela de Login salvou
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+// NOVO: Importa o componente do menu inferior a partir da pasta de componentes
+import BottomMenu from '../../components/BottomMenu';
+
 
 // --- DEFINIÇÃO DE TIPOS (TYPESCRIPT) ---
 interface Expense {
@@ -36,6 +42,7 @@ interface Condominium {
 
 
 // --- COMPONENTES VISUAIS (ExpenseCard e GeneralExpensesChart) ---
+// (Nenhuma mudança necessária aqui, eles continuam os mesmos)
 const ExpenseCard = ({ expense }: { expense: Expense }) => {
   const formatCurrency = (value: number): string => {
     if (!value && value !== 0) return "R$ 0,00";
@@ -83,6 +90,7 @@ const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
 
 // --- A TELA PRINCIPAL ---
 export default function PrestacaoDeContasScreen() {
+  const router = useRouter();
   // Estado para os dados originais do backend
   const [originalExpenses, setOriginalExpenses] = useState<Expense[]>([]);
   // Estado para o texto do filtro
@@ -142,15 +150,15 @@ export default function PrestacaoDeContasScreen() {
     setLoading(true);
     setError(null);
     try {
-      // ETAPA A: FAZENDO O LOGIN PARA OBTER O TOKEN
-      const loginResponse = await fetch("https://meu-condo.vercel.app/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "bmfmlucas@gmail.com", password: "senhaSegura123" }),
-      });
-      if (!loginResponse.ok) throw new Error("Falha ao autenticar com o servidor.");
-      const { token } = await loginResponse.json();
-      if (!token) throw new Error("Token não recebido do servidor.");
+      // ETAPA A: Pega o token salvo pela tela de Login
+      const token = await AsyncStorage.getItem('token');
+      
+      // Se não encontrar o token, o usuário não está logado.
+      if (!token) {
+        Alert.alert("Acesso Negado", "Você precisa fazer o login para ver esta página.");
+        router.replace('/login'); // Envia o usuário de volta para o login
+        return;
+      }
 
       // ETAPA B: BUSCAR TODOS OS CONDOMÍNIOS
       const condosResponse = await fetch("https://meu-condo.vercel.app/condominiums/", {
@@ -158,23 +166,32 @@ export default function PrestacaoDeContasScreen() {
       });
       if (!condosResponse.ok) throw new Error("Não foi possível buscar a lista de condomínios.");
       const condominiums: Condominium[] = await condosResponse.json();
-      if (!condominiums || condominiums.length === 0) throw new Error("Nenhum condomínio encontrado no sistema.");
       
+      if (!condominiums || condominiums.length === 0) {
+        throw new Error("Nenhum condomínio encontrado no sistema. Cadastre um condomínio primeiro.");
+      }
+
+      // ETAPA C (O "DRIBLE"): Usar o ID do PRIMEIRO condomínio da lista para o teste
       const condominiumIdParaTeste = condominiums[0].id;
 
-      // ETAPA C: BUSCAR AS PRESTAÇÕES DE CONTAS COM O ID OBTIDO
+
+      // ETAPA D: BUSCAR AS PRESTAÇÕES DE CONTAS COM O ID OBTIDO
       const expensesResponse = await fetch(
         `https://meu-condo.vercel.app/accountabilities/condominium/${condominiumIdParaTeste}`,
         { headers: { "Authorization": `Bearer ${token}` } }
       );
-      if (!expensesResponse.ok) throw new Error("Não foi possível buscar as prestações de contas.");
+      if (!expensesResponse.ok) throw new Error("Não foi possível buscar as prestações de contas para o condomínio selecionado.");
       const allData: Expense[] = await expensesResponse.json();
       const expensesOnly = allData.filter(item => item.type === 'EXPENSE');
       setOriginalExpenses(expensesOnly);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Um erro desconhecido ocorreu.";
       setError(errorMessage);
-      Alert.alert("Erro", errorMessage);
+       if (errorMessage.includes("Acesso Negado")) {
+         router.replace('/login');
+      } else {
+        Alert.alert("Erro", errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -202,28 +219,30 @@ export default function PrestacaoDeContasScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.headerTitle}>Prestação de Contas</Text>
-        <View style={styles.filterContainer}>
-          <TextInput 
-            placeholder="Pesquisar por Mês/Ano (ex: 06/2025)" 
-            style={styles.input} 
-            placeholderTextColor="#9CA3AF"
-            value={monthYearFilter}
-            onChangeText={setMonthYearFilter}
-          />
-        </View>
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.headerTitle}>Prestação de Contas</Text>
+            <View style={styles.filterContainer}>
+            <TextInput 
+                placeholder="Pesquisar por Mês/Ano (ex: 06/2025)" 
+                style={styles.input} 
+                placeholderTextColor="#9CA3AF"
+                value={monthYearFilter}
+                onChangeText={setMonthYearFilter}
+            />
+            </View>
 
-        <Text style={styles.sectionTitle}>Gastos do Período</Text>
-        {filteredExpenses.length > 0 ? (
-          filteredExpenses.map((expense) => <ExpenseCard key={expense.id} expense={expense} />)
-        ) : (
-          <Text style={styles.infoText}>
-            {originalExpenses.length > 0 ? 'Nenhuma despesa encontrada para este filtro.' : 'Nenhuma despesa cadastrada.'}
-          </Text>
-        )}
-        <GeneralExpensesChart data={chartData} />
-      </ScrollView>
+            <Text style={styles.sectionTitle}>Gastos do Período</Text>
+            {filteredExpenses.length > 0 ? (
+            filteredExpenses.map((expense) => <ExpenseCard key={expense.id} expense={expense} />)
+            ) : (
+            <Text style={styles.infoText}>
+                {originalExpenses.length > 0 ? 'Nenhuma despesa encontrada para este filtro.' : 'Nenhuma despesa cadastrada.'}
+            </Text>
+            )}
+            <GeneralExpensesChart data={chartData} />
+        </ScrollView>
+        {/* NOVO: Adiciona o menu inferior à tela */}
+        <BottomMenu />
     </SafeAreaView>
   );
 }

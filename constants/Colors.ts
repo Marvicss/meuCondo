@@ -1,26 +1,47 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+// constants/Colors.ts
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// 1. Definimos as cores da sua marca
+const azulPrincipal = '#3A82F7';
+const amareloAcao = '#FFC400';
 
-export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+// 2. Criamos a paleta para o TEMA CLARO
+export const CoresClaras = {
+  // Cor principal para botões e elementos ativos (azul)
+  primary: azulPrincipal,
+  // Cor do texto/ícones em cima da cor primária
+  onPrimary: '#FFFFFF',
+  
+  // Cor de fundo do app (branco)
+  background: '#F5F5F5', // Um branco levemente acinzentado é mais confortável
+  // Cor do texto em cima do fundo
+  onBackground: '#1C1C1E', // Preto
+
+  // Cor de superfícies como cards e headers (branco puro)
+  surface: '#FFFFFF',
+  // Cor do texto em cima das superfícies
+  onSurface: '#1C1C1E',
+
+  // Cor para o contorno de elementos
+  outline: '#7D7D7D',
+};
+
+// 3. Criamos a paleta para o TEMA ESCURO
+export const CoresEscuras = {
+  // Cor principal para botões e elementos ativos (amarelo)
+  primary: amareloAcao,
+  // Cor do texto/ícones em cima da cor primária
+  onPrimary: '#212121', // Um preto forte para bom contraste no amarelo
+
+  // Cor de fundo do app (preto)
+  background: '#121212', // Um preto padrão para Material Design Dark
+  // Cor do texto em cima do fundo
+  onBackground: '#E0E0E0', // Branco
+
+  // Cor de superfícies como cards e headers (cinza escuro)
+  surface: '#1E1E1E',
+  // Cor do texto em cima das superfícies
+  onSurface: '#E0E0E0',
+
+  // Cor para o contorno de elementos
+  outline: '#4A4A4A',
 };
