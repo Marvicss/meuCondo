@@ -14,18 +14,41 @@ interface News {
   type: string;
   message: string;
   createdAt: string;
-   
 }
 
-interface DecodedToken { userId: string; email: string; userType: string; iat: number; exp: number; }
+interface NewsComCor extends News {
+  cor: string;
+}
+
+interface DecodedToken {
+  userId: string;
+  email: string;
+  userType: string;
+  iat: number;
+  exp: number;
+}
+
+// Função para mapear tipo para cor
+const getCorPorTipo = (tipo: string): string => {
+  switch (tipo.toLowerCase()) {
+    case 'urgente': return '#D32F2F';
+    case 'geral': return '#F2C94C';
+    case 'manutenção': return '#BDBDBD';
+    case 'eventos': return '#2F80ED';
+    default: return '#BDBDBD';
+  }
+};
+
+// Capitaliza a primeira letra
+const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
 export default function QuadroAvisos() {
   const theme = useTheme();
   const [selectedType, setSelectedType] = useState('Todos');
-  const [avisos, setAvisos] = useState<News[]>([]);
+  const [avisos, setAvisos] = useState<NewsComCor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userInfo, setUserInfo] = useState<DecodedToken | null>(null); // Mantido para consistência
+  const [userInfo, setUserInfo] = useState<DecodedToken | null>(null);
 
   const API_NEWS_URL = 'https://meu-condo.vercel.app/news/';
 
@@ -41,13 +64,9 @@ export default function QuadroAvisos() {
             Alert.alert("Autenticação Necessária", "Por favor, faça o login para ver os avisos.");
             setError("Token de autenticação não encontrado.");
             setLoading(false);
-            // Opcional: Redirecionar para tela de login, se tiver um router disponível
-            // Ex: router.replace('/login');
             return;
           }
 
-          // Decodificar o token para obter informações do usuário (se necessário)
-          // Isso é parte do seu padrão de projeto, mesmo que userInfo não seja usado diretamente aqui
           const decoded = jwtDecode<DecodedToken>(token);
           setUserInfo(decoded);
 
@@ -80,32 +99,19 @@ export default function QuadroAvisos() {
             setError("Formato de dados inesperado da API.");
             return;
           }
-          
-          // Mapear os tipos de avisos para cores
-          const avisosComCores = data.map(aviso => {
-            let cor = '#BDBDBD'; // Cor padrão
-            switch (aviso.type) {
-              case 'Urgente':
-                cor = '#D32F2F';
-                break;
-              case 'Geral':
-                cor = '#F2C94C';
-                break;
-              case 'Manutenção':
-                cor = '#BDBDBD';
-                break;
-              case 'Eventos':
-                cor = '#2F80ED';
-                break;
-              // Adicione outros tipos e cores conforme necessário
-            }
-            return { ...aviso, cor };
+
+          const avisosComCores: NewsComCor[] = data.map(aviso => {
+            const tipoCapitalizado = capitalize(aviso.type);
+            return {
+              ...aviso,
+              type: tipoCapitalizado,
+              cor: getCorPorTipo(aviso.type),
+            };
           });
-          console.log(avisosComCores);
+
           setAvisos(avisosComCores);
-  
+
         } catch (e: any) {
-          // Tratamento de erros de rede ou outros
           Alert.alert("Erro de Conexão", "Não foi possível conectar ao servidor. Verifique sua internet ou tente novamente.");
           setError(`Erro: ${e.message}`);
           console.error("Erro ao buscar avisos:", e);
@@ -113,15 +119,13 @@ export default function QuadroAvisos() {
           setLoading(false);
         }
       };
-      
+
       fetchAvisos();
     }, [])
   );
 
   const filteredAvisos = avisos.filter(aviso => {
-    if (selectedType === 'Todos') {
-      return true;
-    }
+    if (selectedType === 'Todos') return true;
     return aviso.type === selectedType;
   });
 
@@ -135,67 +139,25 @@ export default function QuadroAvisos() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={{ backgroundColor: theme.colors.surface, marginBottom: 16 }}>
           <Card.Content>
             <Text variant="titleMedium" style={{ marginBottom: 8 }}>Filtrar por Tipo</Text>
             <View style={styles.legendContainer}>
-              <Chip
-                onPress={() => setSelectedType('Todos')}
-                style={[
-                  styles.legendChip,
-                  { backgroundColor: '#6200EE' },
-                  selectedType === 'Todos' && styles.selectedChip
-                ]}
-                textStyle={styles.legendText}
-              >
-                Todos
-              </Chip>
-              <Chip
-                onPress={() => setSelectedType('Urgente')}
-                style={[
-                  styles.legendChip,
-                  { backgroundColor: '#D32F2F' },
-                  selectedType === 'Urgente' && styles.selectedChip
-                ]}
-                textStyle={styles.legendText}
-              >
-                Urgente
-              </Chip>
-              <Chip
-                onPress={() => setSelectedType('Geral')}
-                style={[
-                  styles.legendChip,
-                  { backgroundColor: '#F2C94C' },
-                  selectedType === 'Geral' && styles.selectedChip
-                ]}
-                textStyle={styles.legendText}
-              >
-                Geral
-              </Chip>
-              <Chip
-                onPress={() => setSelectedType('Manutenção')}
-                style={[
-                  styles.legendChip,
-                  { backgroundColor: '#BDBDBD' },
-                  selectedType === 'Manutenção' && styles.selectedChip
-                ]}
-                textStyle={styles.legendText}
-              >
-                Manutenção
-              </Chip>
-              <Chip
-                onPress={() => setSelectedType('Eventos')}
-                style={[
-                  styles.legendChip,
-                  { backgroundColor: '#2F80ED' },
-                  selectedType === 'Eventos' && styles.selectedChip
-                ]}
-                textStyle={styles.legendText}
-              >
-                Eventos
-              </Chip>
+              {['Todos', 'Urgente', 'Geral', 'Manutenção', 'Eventos'].map(tipo => (
+                <Chip
+                  key={tipo}
+                  onPress={() => setSelectedType(tipo)}
+                  style={[
+                    styles.legendChip,
+                    { backgroundColor: getCorPorTipo(tipo) },
+                    selectedType === tipo && styles.selectedChip
+                  ]}
+                  textStyle={styles.legendText}
+                >
+                  {tipo}
+                </Chip>
+              ))}
             </View>
           </Card.Content>
         </Card>
@@ -208,10 +170,10 @@ export default function QuadroAvisos() {
           <Text style={styles.noAvisosText}>Nenhum aviso encontrado para o tipo "{selectedType}".</Text>
         ) : (
           filteredAvisos.map(aviso => (
-            <Card key={aviso.id} style={{ backgroundColor: aviso.cor || theme.colors.surface, marginBottom: 16 }}>
+            <Card key={aviso.id} style={{ backgroundColor: aviso.cor, marginBottom: 16 }}>
               <Card.Title
                 title={aviso.type}
-                left={() => <View style={[styles.colorBar, { backgroundColor: aviso.cor || '#BDBDBD' }]} />}
+                left={() => <View style={[styles.colorBar, { backgroundColor: aviso.cor }]} />}
               />
               <Card.Content>
                 <Text variant="bodyMedium">{aviso.message}</Text>
