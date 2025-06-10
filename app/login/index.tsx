@@ -38,7 +38,7 @@ export default function LoginScreen() {
       console.log("Token recebido:", data.token);
       await AsyncStorage.setItem("token", data.token);
       // Navegue para a tela principal após login
-      router.replace("/home");
+      router.replace("./home");
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
       console.error(error);
