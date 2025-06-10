@@ -136,7 +136,7 @@ const Home = () => {
           ) : (
             <Text style={{ color: '#888' }}>Nenhum aviso disponível</Text>
           )}
-          <TouchableOpacity onPress={() => router.push('/avisos')}>
+          <TouchableOpacity onPress={() => router.push('./notice')}>
             <Text style={styles.verMais}>Ver mais avisos</Text>
           </TouchableOpacity>
         </View>
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingBottom: 40 
   },
   scrollContent: {
     padding: 16,

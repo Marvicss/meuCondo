@@ -14,7 +14,7 @@ const BottomMenu: React.FC = () => {
       <TouchableOpacity onPress={() => router.push('/finance')}>
         <Feather name="file-text" size={24} color="black" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/sound')}>
+      <TouchableOpacity onPress={() => router.push('./notice')}>
         <Feather name="volume-2" size={24} color="black" />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/plan')}>
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingBottom:50,
+    paddingBottom:20,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
