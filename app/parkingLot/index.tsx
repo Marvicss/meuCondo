@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter, useFocusEffect } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const COLORS = {
   primaryBlue: '#2F80ED',
@@ -15,144 +16,114 @@ const COLORS = {
   grey: '#BDBDBD',
 };
 
-const API_BASE_URL = 'https://meu-condo.vercel.app/api';
+const API_BASE_URL = 'https://meu-condo.vercel.app';
 
 interface ParkingLot {
-  id: number;
-  spotNumber: string;
-  block?: string;
-  occupied: boolean;
-  spotType: string;
-  condominiumId: number;
+  id: string;
+  name: string;
+  description: string;
+  available: boolean;
 }
 
 export default function ParkingLotIndexScreen() {
   const router = useRouter();
   const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedCondominiumId, setSelectedCondominiumId] = useState<number | null>(1);
+  const condominiumId = "9f743880-52dd-4b65-949d-0cdc726d4752";
 
-  const fetchParkingLots = async (condoId: number | null) => {
-    if (!condoId) {
-      setParkingLots([]);
-      setLoading(false);
-      return;
-    }
+  const fetchParkingLots = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/parking-lots?condominiumId=${condoId}`);
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`HTTP error! status: ${response.status} - ${errorData}`);
+      const authToken = await AsyncStorage.getItem("token");
+      if (!authToken) {
+        Alert.alert("Autenticação necessária", "Faça o login para continuar.");
+        router.replace('/login');
+        return;
       }
-      const data: ParkingLot[] = await response.json();
+
+      const response = await fetch(`${API_BASE_URL}/parkings?condominiumId=${condominiumId}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao carregar as vagas. Tente novamente.");
+      }
+
+      const data = await response.json();
       setParkingLots(data);
     } catch (e: any) {
-      console.error("Falha ao buscar vagas:", e);
-      setError(e.message || 'Falha ao carregar dados.');
-      Alert.alert("Erro", `Não foi possível carregar as vagas: ${e.message}`);
+      Alert.alert("Erro", e.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [condominiumId]);
 
-  useEffect(() => {
-    if (selectedCondominiumId) {
-      fetchParkingLots(selectedCondominiumId);
-    } else {
-      setLoading(false);
-      setParkingLots([]);
-    }
-  }, [selectedCondominiumId]);
-
-  const renderItem = ({ item }: { item: ParkingLot }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.itemHeader}>
-        <FontAwesome name="car" size={24} color={COLORS.primaryBlue} />
-        <Text style={styles.itemSpotNumber}>{item.spotNumber}</Text>
-      </View>
-      {item.block && <Text style={styles.itemDetail}><Text style={styles.bold}>Bloco:</Text> {item.block}</Text>}
-      <Text style={styles.itemDetail}><Text style={styles.bold}>Tipo:</Text> {item.spotType}</Text>
-      <View style={[
-        styles.statusBadge,
-        { backgroundColor: item.occupied ? COLORS.red : COLORS.green }
-      ]}>
-        <Text style={styles.statusText}>
-          {item.occupied ? 'OCUPADA' : 'LIVRE'}
-        </Text>
-      </View>
-    </View>
+  useFocusEffect(
+    useCallback(() => {
+      fetchParkingLots();
+    }, [fetchParkingLots])
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.screenContainer, styles.center]}>
-        <ActivityIndicator size="large" color={COLORS.primaryBlue} />
-        <Text style={{ marginTop: 10, color: COLORS.textSecondary }}>Carregando vagas...</Text>
+  const renderItem = ({ item }: { item: ParkingLot }) => (
+    <TouchableOpacity onPress={() => router.push({ pathname: `/parkingLot/[id]`, params: { id: item.id } })}>
+      <View style={styles.itemContainer}>
+        <View style={styles.itemHeader}>
+          <FontAwesome name="car" size={24} color={COLORS.primaryBlue} />
+          <Text style={styles.itemSpotNumber}>{item.name}</Text>
+        </View>
+        <Text style={styles.itemDetail}>{item.description}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: item.available ? COLORS.green : COLORS.red }]}>
+          <Text style={styles.statusText}>{item.available ? 'LIVRE' : 'OCUPADA'}</Text>
+        </View>
       </View>
-    );
-  }
+    </TouchableOpacity>
+  );
 
   return (
-    <>
-      <Stack.Screen 
-        options={{ 
-          title: 'Vagas do Condomínio',
-        }} 
+    <View style={styles.screenContainer}>
+      <FlatList
+        data={parkingLots}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.center}>
+              <FontAwesome name="info-circle" size={48} color={COLORS.grey} />
+              <Text style={styles.emptyText}>Nenhuma vaga encontrada.</Text>
+            </View>
+          ) : null
+        }
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 90 }}
+        refreshing={loading}
+        onRefresh={fetchParkingLots}
       />
-      <View style={styles.screenContainer}>
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Erro: {error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => fetchParkingLots(selectedCondominiumId)}>
-              <Text style={styles.retryButtonText}>Tentar Novamente</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        <FlatList
-          data={parkingLots}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          ListEmptyComponent={
-            !error && !loading ? (
-              <View style={styles.center}>
-                <FontAwesome name="info-circle" size={48} color={COLORS.grey} />
-                <Text style={styles.emptyText}>
-                  {selectedCondominiumId ? "Nenhuma vaga encontrada." : "Selecione um condomínio."}
-                </Text>
-              </View>
-            ) : null
-          }
-          contentContainerStyle={{ paddingBottom: 20 }}
-          showsVerticalScrollIndicator={false}
-        />
-        <TouchableOpacity style={styles.reloadButton} onPress={() => fetchParkingLots(selectedCondominiumId)}>
-          <FontAwesome name="refresh" size={20} color={COLORS.white} />
-          <Text style={styles.reloadButtonText}>Recarregar</Text>
-        </TouchableOpacity>
-      </View>
-    </>
+      <TouchableOpacity style={styles.fab} onPress={() => router.push('/parkingLot/new')}>
+        <FontAwesome name="plus" size={24} color={COLORS.white} />
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screenContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 20, backgroundColor: COLORS.backgroundLight },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  screenTitle: { fontSize: 26, fontWeight: 'bold', color: COLORS.primaryBlue, marginBottom: 24, textAlign: 'center' }, // Pode ser removido se o Stack.Screen já define o título no header
-  itemContainer: { backgroundColor: COLORS.white, padding: 16, marginBottom: 12, borderRadius: 10, shadowColor: COLORS.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  screenContainer: { flex: 1, backgroundColor: COLORS.backgroundLight },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  itemContainer: { backgroundColor: 'white', padding: 16, marginHorizontal: 16, marginVertical: 8, borderRadius: 10, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
   itemHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   itemSpotNumber: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, marginLeft: 10 },
-  itemDetail: { fontSize: 15, color: COLORS.textSecondary, marginBottom: 5 },
-  bold: { fontWeight: 'bold' },
-  statusBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, alignSelf: 'flex-start', marginTop: 8 },
-  statusText: { color: COLORS.white, fontSize: 12, fontWeight: 'bold' },
-  errorContainer: { alignItems: 'center', marginVertical: 20, padding: 15, backgroundColor: '#ffebee', borderRadius: 8 },
-  errorText: { fontSize: 16, color: COLORS.red, textAlign: 'center', marginBottom: 10 },
-  retryButton: { backgroundColor: COLORS.primaryYellow, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20 },
-  retryButtonText: { color: COLORS.textPrimary, fontWeight: 'bold', fontSize: 16 },
-  emptyText: { fontSize: 16, textAlign: 'center', marginTop: 20, color: COLORS.textSecondary },
-  reloadButton: { backgroundColor: COLORS.primaryBlue, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 25, marginVertical: 10, marginHorizontal: 20, shadowColor: COLORS.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
-  reloadButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold', marginLeft: 10 }
+  itemDetail: { fontSize: 15, color: COLORS.textSecondary, marginBottom: 12, marginTop: 4 },
+  statusBadge: { paddingVertical: 5, paddingHorizontal: 12, borderRadius: 20, alignSelf: 'flex-start' },
+  statusText: { color: 'white', fontWeight: 'bold' },
+  emptyText: { marginTop: 16, fontSize: 16, color: COLORS.textSecondary },
+  fab: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right: 20,
+    bottom: 20,
+    backgroundColor: COLORS.primaryBlue,
+    borderRadius: 30,
+    elevation: 8,
+  },
 });

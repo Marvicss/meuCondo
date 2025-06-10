@@ -34,11 +34,26 @@ export default function LoginScreen() {
       }
 
       const data = await response.json();
-      // Salve o token no AsyncStorage, Context, Redux, ou onde preferir
-      console.log("Token recebido:", data.token);
-      await AsyncStorage.setItem("token", data.token);
-      // Navegue para a tela principal após login
-      router.replace("/home");
+      
+      // Lógica para garantir que pegamos o token, seja qual for o nome da chave
+      const token = data.token || data.access_token;
+      
+      if (!token) {
+        Alert.alert("Erro no Login", "Token de autenticação não foi recebido do servidor.");
+        return;
+      }
+      
+      console.log("Token recebido:", token);
+      
+      // Salva o token no AsyncStorage
+      await AsyncStorage.setItem("token", token);
+      console.log(">>>> Token SALVO com sucesso no AsyncStorage!");
+
+      // --- ALTERAÇÃO PARA TESTE ---
+      // Navega para a tela de vagas após login, como solicitado.
+      console.log("Redirecionando para /parkingLot para teste...");
+      router.replace("/parkingLot");
+
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
       console.error(error);
@@ -86,10 +101,6 @@ export default function LoginScreen() {
               Cadastre-se.
             </Text>
           </Text>
-
-          <TouchableOpacity style={styles.roleButton}>
-            <Text style={styles.roleText}>Sou Síndico</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
