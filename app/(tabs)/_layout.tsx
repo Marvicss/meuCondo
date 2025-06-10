@@ -1,6 +1,6 @@
 // app/(tabs)/_layout.tsx - VERSÃO CORRIGIDA PARA A NOVA ESTRUTURA
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
@@ -37,6 +37,14 @@ export default function TabLayout() {
         name="explore"
         options={{
             href: null, // Esconde esta aba da barra
+        }}
+      />
+      <Tabs.Screen
+        name="parkingLot"
+        options={{
+          title: 'Estacionamento',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <FontAwesome name="car" size={28} color={color} />,
         }}
       />
     </Tabs>
