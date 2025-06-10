@@ -1,4 +1,4 @@
-// app/(tabs)/_layout.tsx
+// app/(tabs)/_layout.tsx - VERSÃO CORRIGIDA PARA A NOVA ESTRUTURA
 
 import React from 'react';
 import { Tabs } from 'expo-router';
@@ -6,25 +6,37 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
-    <Tabs>
+    <Tabs
+      screenOptions={{
+        headerShown: false, // Esconde o título no topo
+      }}
+    >
       <Tabs.Screen
-        name="morador" // Aponta para o arquivo morador.tsx
+        // O nome da rota agora inclui a pasta 'reservas'
+        name="reservas/morador"
         options={{
-          title: 'Reservar',
+          title: 'Reservar', // O texto que aparece na aba
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="calendar-plus" color={color} size={size} />
           ),
-          headerShown: false,
         }}
       />
       <Tabs.Screen
-        name="sindico" // Aponta para o arquivo sindico.tsx
+        // O nome da rota agora inclui a pasta 'reservas'
+        name="reservas/sindico"
         options={{
-          title: 'Gerenciar',
+          title: 'Gerenciar', // O texto que aparece na aba
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="shield-crown" color={color} size={size} />
           ),
-          headerShown: false,
+        }}
+      />
+      {/* Se você ainda tiver a tela 'explore', precisa garantir que o arquivo
+          app/(tabs)/explore.tsx existe, ou remover esta linha abaixo. */}
+      <Tabs.Screen
+        name="explore"
+        options={{
+            href: null, // Esconde esta aba da barra
         }}
       />
     </Tabs>
