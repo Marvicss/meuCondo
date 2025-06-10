@@ -4,7 +4,7 @@ import { Appbar, Button, Card, Text, Chip, useTheme, Divider } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig, DateData } from 'react-native-calendars';
 import { useFocusEffect } from 'expo-router';
-import api from '../services/api';
+import api from '../../services/api';
 
 // Configuração do calendário para português
 LocaleConfig.locales['pt-br'] = {

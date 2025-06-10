@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import api from '../services/api';
+import api from '../../services/api';
 import { jwtDecode } from 'jwt-decode';
 
 // Interface para o Salão de Festas
