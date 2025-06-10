@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   StyleSheet,
   View,
@@ -18,32 +20,15 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import api from '../../services/api';
 import { jwtDecode } from 'jwt-decode';
 
-// Interface para o Salão de Festas
-interface PartyRoom {
-  id: string;
-  name: string;
-  description: string;
-  capacity: number;
-  available: boolean;
-  condominiumId: string;
-}
+// Interfaces
+interface PartyRoom { id: string; name: string; description: string; capacity: number; available: boolean; condominiumId: string; }
+interface DecodedToken { userId: string; email: string; userType: string; iat: number; exp: number; }
 
-// Interface para o conteúdo do token decodificado
-interface DecodedToken {
-  userId: string;
-  email: string;
-  userType: string;
-  iat: number;
-  exp: number;
-}
-
-// Função Helper para extrair a data da reserva da descrição
+// Função Helper
 const getReservationDate = (description: string): string | null => {
   const match = description.match(/\[RESERVADO_EM:(.*?)\]/);
   return match ? match[1] : null;
@@ -52,40 +37,45 @@ const getReservationDate = (description: string): string | null => {
 export default function MoradorScreen() {
   const theme = useTheme();
 
-  // ===================================================================================
-  // COLE SEU TOKEN MAIS RECENTE AQUI.
-  const tokenTemporario = "...";
-  // ===================================================================================
-
   const [partyRooms, setPartyRooms] = useState<PartyRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [userInfo, setUserInfo] = useState<DecodedToken | null>(null);
 
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        const decoded = jwtDecode<DecodedToken>(tokenTemporario);
-        setUserInfo(decoded);
-      } catch (error) {
-        console.error("Token inválido ou ausente. Não foi possível decodificar.", error);
-      }
-      
-      try {
+  // useFocusEffect para buscar os dados com o token real sempre que a tela é focada
+  useFocusEffect(
+    useCallback(() => {
+      const initialize = async () => {
         setLoading(true);
-        const response = await api.get('/partyrooms/', {
-          headers: { Authorization: `Bearer ${tokenTemporario}` },
-        });
-        setPartyRooms(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar salões:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    initialize();
-  }, []);
+        try {
+          const token = await AsyncStorage.getItem('token');
+          if (!token) {
+            Alert.alert("Autenticação necessária", "Por favor, faça o login para acessar esta área.");
+            setLoading(false);
+            // Aqui, no futuro, você pode redirecionar para a tela de login
+            return;
+          }
+
+          const decoded = jwtDecode<DecodedToken>(token);
+          setUserInfo(decoded);
+          
+          const response = await api.get('/partyrooms/', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setPartyRooms(response.data);
+
+        } catch (error) {
+          console.error("Erro na tela Morador:", error);
+          Alert.alert("Erro", "Não foi possível carregar os dados.");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      initialize();
+    }, [])
+  );
 
   const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
@@ -94,14 +84,10 @@ export default function MoradorScreen() {
   };
 
   const handleReserve = async (room: PartyRoom) => {
-    // VERIFICAÇÃO DE SEGURANÇA ADICIONADA
-    if (!userInfo || !userInfo.userId) {
-      Alert.alert(
-        "Erro de Usuário",
-        "Não foi possível identificar o usuário logado. Verifique se o seu token no código é válido e não está expirado."
-      );
-      console.log("handleReserve parou porque userInfo é:", userInfo);
-      return; // Para a execução aqui
+    const token = await AsyncStorage.getItem('token');
+    if (!userInfo || !token) {
+      Alert.alert("Erro de Sessão", "Sua sessão expirou ou é inválida. Por favor, faça o login novamente.");
+      return;
     }
 
     const formattedDate = date.toISOString().split('T')[0];
@@ -121,10 +107,11 @@ export default function MoradorScreen() {
               await api.put(
                 `/partyrooms/${room.id}`,
                 { ...room, available: false, description: newDescription },
-                { headers: { Authorization: `Bearer ${tokenTemporario}` } }
+                { headers: { Authorization: `Bearer ${token}` } }
               );
               Alert.alert("Sucesso!", "Salão reservado com sucesso.");
-              setPartyRooms(rooms => rooms.map(r => r.id === room.id ? { ...r, available: false, description: newDescription } : r));
+              const updatedRooms = partyRooms.map(r => r.id === room.id ? { ...r, available: false, description: newDescription } : r);
+              setPartyRooms(updatedRooms);
             } catch (error) {
               console.error("Erro ao reservar:", error);
               Alert.alert("Erro", "Não foi possível completar a reserva.");
