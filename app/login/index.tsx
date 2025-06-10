@@ -1,4 +1,5 @@
 import { Link, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +8,40 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   ScrollView,
-  Platform
+  Platform,
+  Alert
 } from "react-native";
 
 export default function LoginScreen() {
   const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+    async function handleLogin() {
+    try {
+      const response = await fetch("https://meu-condo.vercel.app/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        Alert.alert("Erro", errorData.message || "Falha no login");
+        return;
+      }
+
+      const data = await response.json();
+      // Salve o token no AsyncStorage, Context, Redux, ou onde preferir
+      console.log("Token recebido:", data.token);
+      // Navegue para a tela principal após login
+      router.replace("/home");
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível conectar ao servidor");
+      console.error(error);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -23,9 +53,7 @@ export default function LoginScreen() {
         <View style={styles.container}>
           <Text style={styles.title}>Bem Vindo ao</Text>
           <Text style={styles.brand}>MeuCondo!</Text>
-          <Text style={styles.subtitle}>
-            Transparência e organização para a vida em condomínio
-          </Text>
+          <Text style={styles.subtitle}>Transparência e organização para a vida em condomínio</Text>
 
           <Text style={styles.formLabel}>Faça Login para continuar</Text>
           <TextInput
@@ -34,15 +62,19 @@ export default function LoginScreen() {
             placeholderTextColor="#ccc"
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
           <TextInput
             placeholder="Senha"
             secureTextEntry
             style={styles.input}
             placeholderTextColor="#ccc"
+            value={password}
+            onChangeText={setPassword}
           />
 
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
           </TouchableOpacity>
 
