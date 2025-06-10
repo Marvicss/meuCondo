@@ -86,10 +86,6 @@ export default function LoginScreen() {
               Cadastre-se.
             </Text>
           </Text>
-
-          <TouchableOpacity style={styles.roleButton}>
-            <Text style={styles.roleText}>Sou Síndico</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
