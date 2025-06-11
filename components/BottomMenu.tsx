@@ -11,7 +11,7 @@ const BottomMenu: React.FC = () => {
       <TouchableOpacity onPress={() => router.push('/home')}>
         <Feather name="home" size={24} color="black" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/finance')}>
+      <TouchableOpacity onPress={() => router.push('/prestacao-morador')}>
         <Feather name="file-text" size={24} color="black" />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/notice')}>

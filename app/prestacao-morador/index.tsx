@@ -249,7 +249,7 @@ export default function PrestacaoDeContasScreen() {
 
 // --- ESTILOS ---
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F3F4F6' },
+  safeArea: { flex: 1, backgroundColor: '#F3F4F6', paddingBottom: 40 },
   container: { padding: 16, paddingBottom: 40 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6', padding: 20 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#111827', textAlign: 'center', marginBottom: 24 },
