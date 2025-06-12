@@ -1,3 +1,17 @@
+# Projeto
+
+Meu Condo é sistema para acompanhamento e gerenciamento de condominios. Onde nele os moradores podem acompanhar o dia a dia do condominio e os sindicos conseguem ter melhor gestão das informações.
+
+# Grupo
+- Marconi Victor
+- Lucas Bomfim
+- Vanessa Lins
+- Rayane Belanger
+- Anderson Lucas
+- Elias Junior
+
+
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).

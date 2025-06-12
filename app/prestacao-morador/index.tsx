@@ -15,6 +15,7 @@ import PieChart from 'react-native-pie-chart';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 // NOVO: Importa o componente do menu inferior a partir da pasta de componentes
+import { jwtDecode } from 'jwt-decode';
 import BottomMenu from '../../components/BottomMenu';
 
 
@@ -39,6 +40,23 @@ interface Condominium {
     name: string;
     // ...outras propriedades do condomínio
 }
+
+type DecodedToken = {
+  userId: string;
+  email: string;
+  userType: string;
+};
+
+type Customer = {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  cpf: string;
+  userType: string;
+  createdAt: string;
+};
 
 
 // --- COMPONENTES VISUAIS (ExpenseCard e GeneralExpensesChart) ---
@@ -101,6 +119,7 @@ export default function PrestacaoDeContasScreen() {
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
 
   // useEffect para aplicar o filtro na lista quando o texto muda
   useEffect(() => {
@@ -170,6 +189,24 @@ export default function PrestacaoDeContasScreen() {
       if (!condominiums || condominiums.length === 0) {
         throw new Error("Nenhum condomínio encontrado no sistema. Cadastre um condomínio primeiro.");
       }
+
+      if (!token) {
+        console.log("Falha ao decodificar o token");
+        return;
+      }
+
+      const decoded: DecodedToken = jwtDecode(token);
+
+      const customerResponse = await fetch(`https://meu-condo.vercel.app/users/${decoded.userId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+
+      const customerData : Customer = await customerResponse.json();
+
+      setCustomer(customerData);
 
       // ETAPA C (O "DRIBLE"): Usar o ID do PRIMEIRO condomínio da lista para o teste
       const condominiumIdParaTeste = condominiums[0].id;
@@ -243,6 +280,12 @@ export default function PrestacaoDeContasScreen() {
         </ScrollView>
         {/* NOVO: Adiciona o menu inferior à tela */}
         <BottomMenu />
+        {customer?.userType === 'ADMIN' && (
+        <View style={styles.floatingButtonContainer}>
+          <Text style={styles.floatingButton} onPress={() => router.push('/addAccountability')}>+</Text>
+        </View>
+        )}
+
     </SafeAreaView>
   );
 }
@@ -293,5 +336,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#374151',
     flexShrink: 1, // Permite que o texto quebre a linha se necessário
+  },
+   floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 80, // Acima do BottomMenu
+    right: 20,
+    zIndex: 10,
+    paddingBottom: 25
+  },
+  floatingButton: {
+    backgroundColor: '#2F80ED',
+    color: 'white',
+    fontSize: 30,
+    textAlign: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    lineHeight: 60, // Centraliza verticalmente
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
 });
