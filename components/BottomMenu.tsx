@@ -1,4 +1,4 @@
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -17,8 +17,8 @@ const BottomMenu: React.FC = () => {
       <TouchableOpacity onPress={() => router.push('/notice')}>
         <Feather name="volume-2" size={24} color="black" />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/plan')}>
-        <Feather name="edit-2" size={24} color="black" />
+      <TouchableOpacity onPress={() => router.push('/parking')}>
+        <FontAwesome name="car" size={24} color="black" />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/reservas/morador')}>
         <Feather name="calendar" size={24} color="black" />
