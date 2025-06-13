@@ -1,244 +1,158 @@
-// app/home.tsx
-import BottomMenu from '@/components/BottomMenu';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Appbar, Card, Text, useTheme, Avatar, Button } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
-import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import BottomMenu from '@/components/BottomMenu'; // Assumindo que este é o caminho correto
 
-type DecodedToken = {
-  userId: string;
-  email: string;
-  userType: string;
-};
-
-type Customer = {
-  id: string;
-  fullName: string;
-  username: string;
-  email: string;
-  phoneNumber: string;
-  cpf: string;
-  userType: string;
-  createdAt: string;
-};
-
-type News = {
-  id: string;
-  condomimniumId: string;
-  message: string;
-  type: string;
-  createdAt: string;
-};
-
-type PartyRoom = {
-  id: string;
-  name: string;
-  description: string;
-  capacity: string;
-  availabe: boolean;
-  condominiumId: string;
-  createdAt: string;
-  updatedAt: string;
-};
+// --- DEFINIÇÃO DE TIPOS (sem mudanças) ---
+type DecodedToken = { userId: string; email: string; userType: string; };
+type Customer = { id: string; fullName: string; username: string; email: string; phoneNumber: string; cpf: string; userType: string; createdAt: string; };
+type News = { id: string; condominiumId: string; message: string; type: string; createdAt: string; };
+type PartyRoom = { id: string; name: string; description: string; capacity: number; available: boolean; condominiumId: string; createdAt: string; updatedAt: string; };
 
 const Home = () => {
+  const theme = useTheme(); // Puxa o tema (claro ou escuro)
   const router = useRouter();
+  
   const [user, setUser] = useState<Customer | null>(null);
-  const [news, setNews] = useState<News[] | null>(null);
-  const [partyRoom, setPartyRoom] = useState<PartyRoom[] | null>(null);
+  const [latestNews, setLatestNews] = useState<News | null>(null);
+  const [partyRooms, setPartyRooms] = useState<PartyRoom[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        console.log("Falha ao decodificar o token");
-        return;
-      }
+  // useFocusEffect para buscar todos os dados quando a tela é focada
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          const token = await AsyncStorage.getItem("token");
+          if (!token) {
+            router.replace('/login');
+            return;
+          }
 
-      const decoded: DecodedToken = jwtDecode(token);
+          const decoded: DecodedToken = jwtDecode(token);
 
-      try {
-        const [userResponse, newsResponse, partyRoomResponse] = await Promise.all([
-          fetch(`https://meu-condo.vercel.app/users/${decoded.userId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-          fetch(`https://meu-condo.vercel.app/news/`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-          fetch(`https://meu-condo.vercel.app/partyrooms/`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-        ]);
+          // Usando Promise.all para buscar tudo em paralelo
+          const [userResponse, newsResponse, partyRoomResponse] = await Promise.all([
+            fetch(`https://meu-condo.vercel.app/users/${decoded.userId}`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`https://meu-condo.vercel.app/news/`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`https://meu-condo.vercel.app/partyrooms/`, { headers: { Authorization: `Bearer ${token}` } })
+          ]);
 
-        if (!userResponse.ok || !newsResponse.ok) {
-          const errorUser = await userResponse.json();
-          const errorNews = await newsResponse.json();
-          Alert.alert("Erro ao carregar", errorUser.message || errorNews.message || "Erro desconhecido");
-          return;
+          // Processa as respostas
+          const userData = userResponse.ok ? await userResponse.json() : null;
+          const newsData = newsResponse.ok ? await newsResponse.json() : [];
+          const partyRoomData = partyRoomResponse.ok ? await partyRoomResponse.json() : [];
+          
+          setUser(userData);
+          setPartyRooms(partyRoomData);
+
+          // Pega a notícia mais recente
+          if (Array.isArray(newsData) && newsData.length > 0) {
+            const sortedNews = newsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            setLatestNews(sortedNews[0]);
+          }
+          
+        } catch (err) {
+          Alert.alert("Erro", "Falha na comunicação com o servidor.");
+        } finally {
+          setLoading(false);
         }
+      };
+      fetchData();
+    }, [router])
+  );
 
-        const userData = await userResponse.json();
-        const newsData: News[] = await newsResponse.json();
-        const paratyRoomData: PartyRoom[] = await partyRoomResponse.json();
-
-        setUser(userData);
-        setNews(newsData);
-        setPartyRoom(paratyRoomData);
-      } catch (err) {
-        Alert.alert("Erro", "Falha na comunicação com o servidor.");
-      }
-    };
-
-    fetchUserInfo();
-  }, []);
-
-  const latestNews = news?.slice().sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )[0];
+  if (loading) {
+    return <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" /></View>;
+  }
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.Content title="Início" titleStyle={{ color: theme.colors.onSurface }} />
+      </Appbar.Header>
+
+      <ScrollView contentContainerStyle={styles.container}>
 
         {/* 1. Informações do usuário */}
-        <View style={styles.userInfo}>
-          <View style={styles.avatarPlaceholder} />
-          <View>
-            <Text style={styles.userName}>{user?.fullName || 'Usuário'}</Text>
-            <Text>cpf : {user?.cpf || '-'}</Text>
-            <Text>type : {user?.userType || '-'}</Text>
-          </View>
-        </View>
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+          <Card.Title
+            title={user?.fullName || 'Bem-vindo(a)!'}
+            titleStyle={{ color: theme.colors.onSurface, fontWeight: 'bold' }}
+            subtitle={user?.userType === 'ADMIN' ? 'Síndico(a)' : 'Morador(a)'}
+            subtitleStyle={{ color: theme.colors.onSurfaceVariant }}
+            left={(props) => <Avatar.Text {...props} label={user?.fullName ? user.fullName.charAt(0) : '?'} />}
+          />
+        </Card>
 
         {/* 2. Último aviso publicado */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Último aviso publicado</Text>
-          {latestNews ? (
-            <View style={styles.cardAviso}>
-              <View style={styles.blueBar} />
-              <View style={styles.avisoContent}>
-                <Text style={styles.avisoTitle}>{latestNews.message}</Text>
-                <Text style={{ color: '#888', fontSize: 12 }}>
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content>
+            <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>Último Aviso</Text>
+            {latestNews ? (
+              <>
+                <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>{latestNews.message}</Text>
+                <Text style={{ color: theme.colors.onSurfaceDisabled, fontSize: 12 }}>
                   Publicado em {new Date(latestNews.createdAt).toLocaleDateString()}
                 </Text>
-              </View>
-            </View>
-          ) : (
-            <Text style={{ color: '#888' }}>Nenhum aviso disponível</Text>
-          )}
-          <TouchableOpacity onPress={() => router.push('./notice')}>
-            <Text style={styles.verMais}>Ver mais avisos</Text>
-          </TouchableOpacity>
-        </View>
+              </>
+            ) : (
+              <Text style={{ color: theme.colors.onSurfaceDisabled }}>Nenhum aviso disponível</Text>
+            )}
+          </Card.Content>
+          <Card.Actions>
+            <Button onPress={() => router.push('/notice')}>Ver todos os avisos</Button>
+          </Card.Actions>
+        </Card>
 
-        {/* 3. Próximas reservas - agora como lista vertical */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Próximas reservas</Text>
-          {partyRoom && partyRoom.length > 0 ? (
-            partyRoom.map((item) => (
-              <View key={item.id} style={styles.reservaCard}>
-                <Text style={styles.reservaTitle}>{item.name}</Text>
-                <Text>Descrição: {item.description}</Text>
-                <Text>Capacidade: {item.capacity}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={{ color: '#888' }}>Nenhuma reserva encontrada</Text>
-          )}
-        </View>
+        {/* 3. Próximas reservas */}
+        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content>
+            <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>Próximas Reservas</Text>
+            {partyRooms && partyRooms.filter(r => !r.available).length > 0 ? (
+              partyRooms.filter(r => !r.available).map(item => (
+                <View key={item.id} style={styles.reservaItem}>
+                  <Text style={{ color: theme.colors.onSurface }}>{item.name}</Text>
+                  {/* Aqui poderíamos mostrar a data se estivesse disponível */}
+                </View>
+              ))
+            ) : (
+              <Text style={{ color: theme.colors.onSurfaceDisabled, marginTop: 8 }}>Nenhuma reserva futura encontrada</Text>
+            )}
+          </Card.Content>
+           <Card.Actions>
+            <Button onPress={() => router.push('../reservas/morador')}>Fazer nova reserva</Button>
+          </Card.Actions>
+        </Card>
 
       </ScrollView>
 
       {/* Bottom Menu */}
       <BottomMenu />
-    </View>
+    </SafeAreaView>
   );
 };
 
-export default Home;
-
 const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
+  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingBottom: 40 
-  },
-  scrollContent: {
     padding: 16,
-    paddingBottom: 100,
   },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
+  card: {
+    marginBottom: 16,
   },
-  avatarPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#F2C94C',
-    marginRight: 12,
-  },
-  userName: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  cardAviso: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    padding: 12,
-    marginBottom: 8,
-  },
-  blueBar: {
-    width: 6,
-    backgroundColor: '#2F80ED',
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  avisoContent: {
-    flex: 1,
-  },
-  avisoTitle: {
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  verMais: {
-    color: '#2F80ED',
-    fontWeight: 'bold',
-    alignSelf: 'flex-end',
-  },
-  reservaCard: {
-    backgroundColor: '#f2f2f2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  reservaTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
+  reservaItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    marginTop: 8
   },
 });
+
+export default Home;

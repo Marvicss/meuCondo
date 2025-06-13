@@ -1,105 +1,137 @@
-import { View, Text, ScrollView, Pressable, Image } from 'react-native';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Appbar, Button, Card, Text, useTheme, Chip } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons'; // Usaremos para o ícone do carro
 import BottomMenu from '@/components/BottomMenu';
-import { FontAwesome } from '@expo/vector-icons'; // lá no topo
 
-
+// --- DEFINIÇÃO DE TIPOS ---
 type ParkingLot = {
   id: string;
   name: string;
   description: string;
-  status: 'LIVRE' | 'OCUPADO';
   available: boolean;
 };
 
 export default function ParkingLotPage() {
-  const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
+  const theme = useTheme(); // Puxa o tema dinâmico
   const router = useRouter();
+  const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchParkings = async () => {
-      const token = await AsyncStorage.getItem("token");
+  // useFocusEffect para buscar os dados sempre que a tela é focada
+  useFocusEffect(
+    useCallback(() => {
+      const fetchParkings = async () => {
+        setLoading(true);
+        try {
+          const token = await AsyncStorage.getItem("token");
+          if (!token) {
+            router.replace('/login');
+            return;
+          }
+          // Lógica com fetch, como solicitado
+          const response = await fetch("https://meu-condo.vercel.app/parkings/", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok) throw new Error('Falha ao buscar vagas');
+          
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            setParkingLots(data);
+          }
+        } catch (err) {
+          console.error("Erro ao buscar estacionamentos:", err);
+          Alert.alert("Erro", "Não foi possível carregar as vagas.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchParkings();
+    }, [router])
+  );
 
-      if (!token) return;
-
-      fetch("https://meu-condo.vercel.app/parkings/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) setParkingLots(data);
-        })
-        .catch((err) => console.error("Erro ao buscar estacionamentos:", err));
-    };
-
-    fetchParkings();
-  }, []);
+  if (loading) {
+    return (
+      <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
-      <Text style={{ textAlign: 'center', marginTop: 40, fontSize: 22, fontWeight: '700', color: '#1E60E5' }}>
-        Vagas do Condomínio
-      </Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.Content title="Vagas do Condomínio" titleStyle={{ color: theme.colors.onSurface }} />
+      </Appbar.Header>
 
-      <ScrollView style={{ padding: 16 }}>
-        {parkingLots.map((lot) => (
-          <View
-            key={lot.id}
-            style={{
-              backgroundColor: '#fff',
-              padding: 20,
-              borderRadius: 16,
-              marginBottom: 16,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <FontAwesome name="car" size={28} color="#1E60E5" style={{ marginRight: 10 }} />
-
-              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{lot.name}</Text>
-            </View>
-
-            <Text style={{ fontSize: 14, color: '#4B5563', marginBottom: 10 }}>{lot.description}</Text>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <View
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 20,
-                  backgroundColor: lot.available ? '#10B981' : '#EF4444',
-                }}
-              >
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>
-                  {lot.available ? 'Disponível' : 'Indisponível'}
-                </Text>
-              </View>
-            </View>
-
-            <Pressable
-              onPress={() => router.push(`/parking/${lot.id}`)}
-              style={{
-                backgroundColor: '#1E60E5',
-                paddingVertical: 10,
-                borderRadius: 10,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>Ver detalhes</Text>
-            </Pressable>
-          </View>
-        ))}
-      </ScrollView>
-
-      <BottomMenu />
-    </View>
+      <View style={styles.mainContent}>
+        <ScrollView contentContainerStyle={styles.container}>
+          {parkingLots.length > 0 ? (
+            parkingLots.map((lot) => (
+              <Card key={lot.id} style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+                <Card.Title
+                  title={lot.name}
+                  titleStyle={{ color: theme.colors.onSurface, fontWeight: 'bold' }}
+                  left={(props) => <MaterialCommunityIcons {...props} name="car" color={theme.colors.primary} />}
+                  right={(props) => (
+                    <Chip 
+                      {...props}
+                      icon={lot.available ? 'check-circle' : 'close-circle'}
+                      textStyle={{ color: lot.available ? '#34C759' : theme.colors.error }}
+                      style={{ backgroundColor: lot.available ? '#E9F9EE' : theme.colors.errorContainer, marginRight: 8 }}
+                    >
+                      {lot.available ? 'Disponível' : 'Indisponível'}
+                    </Chip>
+                  )}
+                />
+                <Card.Content>
+                  <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
+                    {lot.description}
+                  </Text>
+                </Card.Content>
+                <Card.Actions>
+                  <Button 
+                    mode="contained" 
+                    onPress={() => router.push(`/parking/${lot.id}`)}
+                  >
+                    Ver detalhes
+                  </Button>
+                </Card.Actions>
+              </Card>
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, marginTop: 40 }}>
+              Nenhuma vaga de estacionamento encontrada.
+            </Text>
+          )}
+        </ScrollView>
+        <BottomMenu />
+      </View>
+    </SafeAreaView>
   );
 }
+
+// --- ESTILOS SIMPLIFICADOS ---
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  centerScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mainContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  container: {
+    padding: 16,
+  },
+  card: {
+    marginBottom: 16,
+  },
+});
