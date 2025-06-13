@@ -77,25 +77,22 @@ export default function AddAccountability() {
     fetchCondominiums();
   }, []);
 
-  // Função para converter DD-MM-AAAA para AAAA-MM-DD
   function convertToISO(dateStr: string): string {
     const [day, month, year] = dateStr.split("-");
     return `${year}-${month}-${day}`;
   }
 
   const handleDateChange = (text: string) => {
-    // Remove tudo que não for dígito
     let cleanedText = text.replace(/[^0-9]/g, '');
-
     let formattedText = '';
 
     if (cleanedText.length > 0) {
-      formattedText += cleanedText.substring(0, 2); // Dias
+      formattedText += cleanedText.substring(0, 2);
       if (cleanedText.length > 2) {
-        formattedText += '-' + cleanedText.substring(2, 4); // Meses
+        formattedText += '-' + cleanedText.substring(2, 4);
       }
       if (cleanedText.length > 4) {
-        formattedText += '-' + cleanedText.substring(4, 8); // Anos
+        formattedText += '-' + cleanedText.substring(4, 8);
       }
     }
     setDate(formattedText);
@@ -133,15 +130,12 @@ export default function AddAccountability() {
       }
 
       Alert.alert("Sucesso", "Conta criada com sucesso!");
-
-      // Limpar o formulário
       setTitle("");
       setAmount("");
       setType("EXPENSE");
       setDescription("");
       setDate("");
       setSelectedCondoId("");
-
     } catch (error) {
       Alert.alert("Erro", "Erro ao conectar ao servidor");
       console.error(error);
@@ -163,7 +157,8 @@ export default function AddAccountability() {
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            placeholderTextColor="#888" // Adicionado para placeholder visível
+            placeholder="Digite o título"
+            placeholderTextColor="#888"
           />
 
           <Text style={styles.label}>Valor</Text>
@@ -172,7 +167,8 @@ export default function AddAccountability() {
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
-            placeholderTextColor="#888" // Adicionado para placeholder visível
+            placeholder="Digite o valor"
+            placeholderTextColor="#888"
           />
 
           <Text style={styles.label}>Tipo</Text>
@@ -180,7 +176,7 @@ export default function AddAccountability() {
             selectedValue={type}
             onValueChange={(itemValue) => setType(itemValue)}
             style={styles.input}
-            itemStyle={styles.pickerItem} // Estilo para os itens do Picker
+            itemStyle={styles.pickerItem}
           >
             <Picker.Item label="Despesa" value="EXPENSE" />
             <Picker.Item label="Receita" value="INCOME" />
@@ -192,7 +188,8 @@ export default function AddAccountability() {
             multiline
             value={description}
             onChangeText={setDescription}
-            placeholderTextColor="#888" // Adicionado para placeholder visível
+            placeholder="Digite uma descrição"
+            placeholderTextColor="#888"
           />
 
           <Text style={styles.label}>Data (DD-MM-AAAA)</Text>
@@ -202,8 +199,8 @@ export default function AddAccountability() {
             value={date}
             onChangeText={handleDateChange}
             keyboardType="numeric"
-            placeholderTextColor="#888" // Adicionado para placeholder visível
-            maxLength={10} // Limita a entrada a 10 caracteres (DD-MM-AAAA)
+            placeholderTextColor="#888"
+            maxLength={10}
           />
 
           <Text style={styles.label}>Condomínio</Text>
@@ -211,7 +208,7 @@ export default function AddAccountability() {
             selectedValue={selectedCondoId}
             onValueChange={(value) => setSelectedCondoId(value)}
             style={styles.input}
-            itemStyle={styles.pickerItem} // Estilo para os itens do Picker
+            itemStyle={styles.pickerItem}
           >
             <Picker.Item label="Selecione um condomínio" value="" />
             {condominiums.map((condo) => (
@@ -232,32 +229,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "##FFFFFF", // Fundo azul
+    backgroundColor: "#fff", // Alterado para fundo branco
   },
   title: {
     fontSize: 24,
-    color: "#fff",
+    color: "#333", // Alterado para texto escuro
     fontWeight: "bold",
     marginBottom: 24,
   },
   label: {
-    color: "#fff",
+    color: "#333", // Alterado para texto escuro
     marginTop: 16,
-    marginBottom: 4, // Espaço entre o label e o input
-    fontWeight: "bold", // Para destacar o label
+    marginBottom: 4,
+    fontWeight: "bold",
   },
   input: {
-    backgroundColor: "#fff", // Fundo branco para o input
-    borderWidth: 1, // Adicionado borda para melhor visualização
+    backgroundColor: "#fff",
+    borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8, // Borda arredondada
-    paddingHorizontal: 12, // Espaçamento interno
+    borderRadius: 8,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 16, // Mais espaço entre os inputs
-    color: "#000", // Cor do texto dentro do input para preto
+    marginBottom: 16,
+    color: "#000",
+    elevation: 2, // Sombra leve Android
+    shadowColor: "#000", // Sombra leve iOS
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   pickerItem: {
-    color: "#000", // Cor do texto dos itens do Picker para preto
+    color: "#000",
   },
   button: {
     backgroundColor: "#F2C94C",
@@ -269,6 +271,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
     color: "#2F80ED",
-    fontSize: 16, // Aumentado para melhor leitura
+    fontSize: 16,
   },
 });
