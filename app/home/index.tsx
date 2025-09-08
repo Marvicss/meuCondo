@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Appbar, Card, Text, useTheme, Avatar, Button } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import BottomMenu from '@/components/BottomMenu'; // Assumindo que este é o caminho correto
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
-import BottomMenu from '@/components/BottomMenu'; // Assumindo que este é o caminho correto
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Appbar, Avatar, Button, Card, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- DEFINIÇÃO DE TIPOS (sem mudanças) ---
 type DecodedToken = { userId: string; email: string; userType: string; };
@@ -106,7 +106,7 @@ const Home = () => {
             )}
           </Card.Content>
           <Card.Actions>
-            <Button onPress={() => router.push('/notice')}>Ver todos os avisos</Button>
+            <Button mode="contained" onPress={() => router.push('/notice')}>Ver todos os avisos</Button>
           </Card.Actions>
         </Card>
 
@@ -125,8 +125,8 @@ const Home = () => {
               <Text style={{ color: theme.colors.onSurfaceDisabled, marginTop: 8 }}>Nenhuma reserva futura encontrada</Text>
             )}
           </Card.Content>
-           <Card.Actions>
-            <Button onPress={() => router.push('../reservas/morador')}>Fazer nova reserva</Button>
+          <Card.Actions>
+            <Button mode="contained" onPress={() => router.push('../reservas/morador')}>Fazer nova reserva</Button>
           </Card.Actions>
         </Card>
 

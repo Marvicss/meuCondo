@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Appbar, Button, Card, Text, TextInput, useTheme, FAB } from 'react-native-paper';
-import PieChart from 'react-native-pie-chart';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { jwtDecode } from 'jwt-decode';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Appbar, Button, Card, FAB, Text, TextInput, useTheme } from 'react-native-paper';
+import PieChart from 'react-native-pie-chart';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomMenu from '../../components/BottomMenu';
 
 // --- DEFINIÇÃO DE TIPOS ---
@@ -20,8 +20,11 @@ const ExpenseCard = ({ expense }: { expense: Expense }) => {
   const theme = useTheme();
   const isIncome = expense.type === 'INCOME';
   
-  const cardColor = isIncome ? theme.colors.tertiaryContainer : theme.colors.errorContainer;
-  const textColor = isIncome ? theme.colors.onTertiaryContainer : theme.colors.onErrorContainer;
+  // Tons mais vivos, iguais em claro/escuro para manter consistência visual
+  const incomeBackground = '#0EA5A5'; // teal vibrante
+  const expenseBackground = '#EF4444'; // vermelho vibrante
+  const cardColor = isIncome ? incomeBackground : expenseBackground;
+  const textColor = '#FFFFFF';
 
   const formatCurrency = (value: number) => `R$ ${Number(value).toFixed(2).replace('.', ',')}`;
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
@@ -41,6 +44,18 @@ const ExpenseCard = ({ expense }: { expense: Expense }) => {
   );
 };
 
+// Paleta fixa e amigável para gráficos (Okabe-Ito), fica igual no dark
+const CHART_COLORS = [
+  '#0072B2', // blue
+  '#E69F00', // orange
+  '#009E73', // green
+  '#D55E00', // vermillion
+  '#CC79A7', // pink
+  '#F0E442', // yellow
+  '#56B4E9', // sky blue
+  '#000000', // black
+];
+
 const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
   const theme = useTheme();
   if (!data || data.length === 0) {
@@ -53,7 +68,7 @@ const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
     );
   }
 
-  const slices = data.map(item => ({ value: item.value, color: item.color }));
+  const slices = data.map((item, index) => ({ value: item.value, color: CHART_COLORS[index % CHART_COLORS.length] }));
 
   return (
     <Card style={{ backgroundColor: theme.colors.surface, padding: 16, marginTop: 20, alignItems: 'center' }}>
@@ -61,9 +76,9 @@ const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
       <View style={styles.chartAndLegendWrapper}>
         <PieChart widthAndHeight={150} series={slices} />
         <View style={styles.legendContainer}>
-          {data.map((item) => (
+          {data.map((item, index) => (
             <View key={item.label} style={styles.legendItem}>
-              <View style={[styles.legendColorBox, { backgroundColor: item.color }]} />
+              <View style={[styles.legendColorBox, { backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }]} />
               <Text style={[styles.legendText, { color: theme.colors.onSurfaceVariant, flexShrink: 1 }]}>
                 {`${item.label} (${item.value.toFixed(1)}%)`}
               </Text>

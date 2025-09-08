@@ -87,9 +87,9 @@ export default function LoginScreen() {
             </Text>
           </Text>
 
-          <TouchableOpacity style={styles.roleButton}>
+          <View style={styles.roleButton}>
             <Text style={styles.roleText}>Sou Síndico</Text>
-          </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
