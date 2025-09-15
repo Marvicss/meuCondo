@@ -1,13 +1,12 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function Inicio() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, colorScheme === 'light' && { fontFamily: 'System', fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 }]}>MeuCondo</Text>
+      <Text style={styles.brand}>MeuCondo</Text>
       <Pressable style={styles.button} onPress={() => router.replace('/login')}>
         <Text style={styles.buttonText}>Começar</Text>
       </Pressable>
@@ -23,23 +22,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
-  title: {
+  brand: {
     fontSize: 40,
-    fontWeight: 'bold',
-    color: '#FFD43B',
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 1,
     marginBottom: 120,
+    fontFamily: 'System',
   },
   button: {
     position: 'absolute',
     bottom: 50,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
     borderRadius: 10,
+    elevation: 2,
   },
   buttonText: {
     color: '#0095FF',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    textAlign: 'center',
   },
 });
