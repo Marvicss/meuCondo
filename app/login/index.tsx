@@ -9,12 +9,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  View
+  TouchableOpacity, useColorScheme, View
 } from "react-native";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,7 +54,7 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
           <Text style={styles.title}>Bem Vindo ao</Text>
-          <Text style={styles.brand}>MeuCondo!</Text>
+          <Text style={[styles.brand, colorScheme === 'light' && { fontFamily: 'System', fontWeight: '900', color: '#FFFFFF', fontSize: 40, letterSpacing: 1 }]}>MeuCondo!</Text>
           <Text style={styles.subtitle}>Transparência e organização para a vida em condomínio</Text>
 
           <Text style={styles.formLabel}>Faça Login para continuar</Text>
@@ -100,7 +100,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2F80ED",
+    backgroundColor: "#0095FF",
     padding: 24,
     justifyContent: "center",
   },

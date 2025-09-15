@@ -1,27 +1,29 @@
-import { Feather, FontAwesome } from '@expo/vector-icons';
+import { Feather, FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, useColorScheme,  } from 'react-native';
 
 const BottomMenu: React.FC = () => {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'light' ? 'white' : 'black';
 
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={() => router.push('/home')}>
-        <Feather name="home" size={24} color="black" />
+        <Feather name="home" size={24} color={iconColor} />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/prestacao-morador')}>
-        <Feather name="file-text" size={24} color="black" />
+        <Ionicons name="cash-outline" size={24} color={iconColor} />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/notice')}>
-        <Feather name="volume-2" size={24} color="black" />
+        <Feather name="volume-2" size={24} color={iconColor} />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/parking')}>
-        <FontAwesome name="car" size={24} color="black" />
+        <FontAwesome name="car" size={24} color={iconColor} />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/reservas/morador')}>
-        <Feather name="calendar" size={24} color="black" />
+        <Feather name="calendar" size={24} color={iconColor} />
       </TouchableOpacity>
     </View>
   );

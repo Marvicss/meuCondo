@@ -1,19 +1,14 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
+  Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text,
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-  Alert,
+  TouchableOpacity, useColorScheme, View
 } from "react-native";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
 
   
   const [fullName, setFullName] = useState("");
@@ -63,7 +58,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
           <Text style={styles.title}>Bem Vindo ao</Text>
-          <Text style={styles.brand}>MeuCondo!</Text>
+          <Text style={[styles.brand, colorScheme === 'light' && { fontFamily: 'System', fontWeight: '900', color: '#FFFFFF', fontSize: 40, letterSpacing: 1 }]}>MeuCondo!</Text>
           <Text style={styles.subtitle}>
             Transparência e organização para a vida em condomínio
           </Text>
@@ -140,7 +135,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2F80ED",
+    backgroundColor: "#0095FF",
     padding: 24,
     justifyContent: "center",
   },
