@@ -44,16 +44,13 @@ const ExpenseCard = ({ expense }: { expense: Expense }) => {
   );
 };
 
-// Paleta fixa e amigável para gráficos (Okabe-Ito), fica igual no dark
+// Paleta fixa para gráficos igual à imagem enviada
 const CHART_COLORS = [
-  '#0072B2', // blue
-  '#E69F00', // orange
-  '#009E73', // green
-  '#D55E00', // vermillion
-  '#CC79A7', // pink
-  '#F0E442', // yellow
-  '#56B4E9', // sky blue
-  '#000000', // black
+  '#11d82bff', // Produto A
+  '#eeea0fff', // Produto B
+  '#ff3333ff', // Produto C
+  '#0095FF', // Produto D
+  '#F6D47C', // Produto E
 ];
 
 const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
