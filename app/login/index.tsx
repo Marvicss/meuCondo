@@ -15,11 +15,10 @@ import {
 
 export default function LoginScreen() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-    async function handleLogin() {
+  async function handleLogin() {
     try {
       const response = await fetch("https://meu-condo.vercel.app/auth/login", {
         method: "POST",
@@ -34,10 +33,7 @@ export default function LoginScreen() {
       }
 
       const data = await response.json();
-      // Salve o token no AsyncStorage, Context, Redux, ou onde preferir
-      console.log("Token recebido:", data.token);
       await AsyncStorage.setItem("token", data.token);
-      // Navegue para a tela principal após login
       router.replace("./home");
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
@@ -61,7 +57,7 @@ export default function LoginScreen() {
           <TextInput
             placeholder="E-Mail"
             style={styles.input}
-            placeholderTextColor="#ccc"
+            placeholderTextColor="#e0e0e0"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -71,7 +67,7 @@ export default function LoginScreen() {
             placeholder="Senha"
             secureTextEntry
             style={styles.input}
-            placeholderTextColor="#ccc"
+            placeholderTextColor="#e0e0e0"
             value={password}
             onChangeText={setPassword}
           />
@@ -87,20 +83,19 @@ export default function LoginScreen() {
             </Text>
           </Text>
 
-          <TouchableOpacity style={styles.roleButton}>
+          <View style={styles.roleButton}>
             <Text style={styles.roleText}>Sou Síndico</Text>
-          </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#2F80ED",
+    backgroundColor: "#0095FF",
     padding: 24,
     justifyContent: "center",
   },
@@ -108,11 +103,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: "#fff",
     fontWeight: "400",
+    marginBottom: 0,
   },
   brand: {
-    fontSize: 32,
-    color: "#F2C94C",
-    fontWeight: "bold",
+    fontSize: 40,
+    color: "#fff",
+    fontWeight: "900",
+    fontFamily: 'System',
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
@@ -122,29 +121,36 @@ const styles = StyleSheet.create({
   formLabel: {
     color: "#fff",
     marginBottom: 8,
+    fontWeight: "bold",
+    fontSize: 15,
   },
   input: {
     borderBottomWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#e0e0e0",
     color: "#fff",
-    marginBottom: 16,
-    paddingVertical: 4,
+    marginBottom: 18,
+    paddingVertical: 6,
+    fontSize: 16,
   },
   button: {
-    backgroundColor: "#F2C94C",
-    paddingVertical: 12,
+    backgroundColor: "#fff",
+    paddingVertical: 14,
     borderRadius: 8,
-    marginTop: 8,
+    marginTop: 16,
+    marginBottom: 8,
+    elevation: 2,
   },
   buttonText: {
     textAlign: "center",
     fontWeight: "bold",
-    color: "#2F80ED",
+    color: "#0095FF",
+    fontSize: 18,
   },
   linkText: {
     color: "#fff",
     marginTop: 16,
     textAlign: "center",
+    fontSize: 14,
   },
   link: {
     textDecorationLine: "underline",
@@ -156,7 +162,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   roleText: {
-    color: "#000",
+    color: "#fff",
     fontWeight: "bold",
+    fontSize: 15,
+    opacity: 0.8,
   },
 });

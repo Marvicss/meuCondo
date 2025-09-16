@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Appbar, Card, Text, useTheme, Avatar, Button } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import BottomMenu from '@/components/BottomMenu';
+import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
-import BottomMenu from '@/components/BottomMenu'; // Assumindo que este é o caminho correto
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- DEFINIÇÃO DE TIPOS (sem mudanças) ---
 type DecodedToken = { userId: string; email: string; userType: string; };
@@ -14,9 +15,9 @@ type News = { id: string; condominiumId: string; message: string; type: string; 
 type PartyRoom = { id: string; name: string; description: string; capacity: number; available: boolean; condominiumId: string; createdAt: string; updatedAt: string; };
 
 const Home = () => {
-  const theme = useTheme(); // Puxa o tema (claro ou escuro)
+  const theme = useTheme();
   const router = useRouter();
-  
+
   const [user, setUser] = useState<Customer | null>(null);
   const [latestNews, setLatestNews] = useState<News | null>(null);
   const [partyRooms, setPartyRooms] = useState<PartyRoom[]>([]);
@@ -71,68 +72,73 @@ const Home = () => {
     return <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" /></View>;
   }
 
+  // Simulação de votações (adicione sua lógica real depois)
+  const votacoes = [
+    {
+      id: '1',
+      title: 'Aprovar orçamento da reforma da fachada',
+      periodo: '10/04 a 15/04',
+      descricao: 'Descrição'
+    },
+    {
+      id: '2',
+      title: 'Aprovar orçamento da reforma da fachada',
+      periodo: '10/04 a 15/04',
+      descricao: 'Descrição'
+    }
+  ];
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.Content title="Início" titleStyle={{ color: theme.colors.onSurface }} />
-      </Appbar.Header>
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Topo: Usuário */}
+        <View style={styles.userRow}>
+          <Feather name="user" size={28} color={theme.colors.onSurface} />
+          <Text style={[styles.userName, { color: theme.colors.onSurface }]}>{user?.fullName || 'Bem-vindo(a)!'}</Text>
+        </View>
 
-      <ScrollView contentContainerStyle={styles.container}>
+        {/* Aviso em destaque */}
+        <View style={[styles.newsCard, { backgroundColor: '#0099FF' }]}>
+          <Text style={[styles.newsTitle, { color: '#fff' }]}>{latestNews?.message || 'Nenhum aviso disponível'}</Text>
+          <Text style={[styles.newsDate, { color: '#fff' }]}>
+            {latestNews ? `Publicado em ${new Date(latestNews.createdAt).toLocaleDateString()}` : ''}
+          </Text>
+          <TouchableOpacity onPress={() => router.push('/notice')}>
+            <Text style={[styles.newsLink, { color: '#fff' }]}>Ver mais avisos</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* 1. Informações do usuário */}
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          <Card.Title
-            title={user?.fullName || 'Bem-vindo(a)!'}
-            titleStyle={{ color: theme.colors.onSurface, fontWeight: 'bold' }}
-            subtitle={user?.userType === 'ADMIN' ? 'Síndico(a)' : 'Morador(a)'}
-            subtitleStyle={{ color: theme.colors.onSurfaceVariant }}
-            left={(props) => <Avatar.Text {...props} label={user?.fullName ? user.fullName.charAt(0) : '?'} />}
-          />
-        </Card>
+        {/* Próxima reserva agendada */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próxima reserva agendada</Text>
+        <FlatList
+          data={partyRooms.filter(r => !r.available)}
+          keyExtractor={item => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 12 }}
+          ListEmptyComponent={
+            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
+              <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>Nenhuma reserva futura encontrada</Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
+              <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>{item.name}</Text>
+            </View>
+          )}
+        />
 
-        {/* 2. Último aviso publicado */}
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>Último Aviso</Text>
-            {latestNews ? (
-              <>
-                <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>{latestNews.message}</Text>
-                <Text style={{ color: theme.colors.onSurfaceDisabled, fontSize: 12 }}>
-                  Publicado em {new Date(latestNews.createdAt).toLocaleDateString()}
-                </Text>
-              </>
-            ) : (
-              <Text style={{ color: theme.colors.onSurfaceDisabled }}>Nenhum aviso disponível</Text>
-            )}
-          </Card.Content>
-          <Card.Actions>
-            <Button onPress={() => router.push('/notice')}>Ver todos os avisos</Button>
-          </Card.Actions>
-        </Card>
-
-        {/* 3. Próximas reservas */}
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <Text variant="titleMedium" style={{ color: theme.colors.onSurface }}>Próximas Reservas</Text>
-            {partyRooms && partyRooms.filter(r => !r.available).length > 0 ? (
-              partyRooms.filter(r => !r.available).map(item => (
-                <View key={item.id} style={styles.reservaItem}>
-                  <Text style={{ color: theme.colors.onSurface }}>{item.name}</Text>
-                  {/* Aqui poderíamos mostrar a data se estivesse disponível */}
-                </View>
-              ))
-            ) : (
-              <Text style={{ color: theme.colors.onSurfaceDisabled, marginTop: 8 }}>Nenhuma reserva futura encontrada</Text>
-            )}
-          </Card.Content>
-           <Card.Actions>
-            <Button onPress={() => router.push('../reservas/morador')}>Fazer nova reserva</Button>
-          </Card.Actions>
-        </Card>
+        {/* Próximas votações */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próximas votações</Text>
+        {votacoes.map(v => (
+          <View key={v.id} style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}>
+            <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface }]}>{v.title}</Text>
+            <Text style={[styles.votacaoPeriodo, { color: theme.colors.onSurface }]}>{`Período de votação: ${v.periodo}`}</Text>
+            <Text style={[styles.votacaoDescricao, { color: theme.colors.onSurface }]}>{v.descricao}</Text>
+          </View>
+        ))}
 
       </ScrollView>
-
-      {/* Bottom Menu */}
       <BottomMenu />
     </SafeAreaView>
   );
@@ -143,15 +149,93 @@ const styles = StyleSheet.create({
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: {
     padding: 16,
+    paddingBottom: 32,
   },
-  card: {
-    marginBottom: 16,
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+    gap: 8,
   },
-  reservaItem: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    marginTop: 8
+  userName: {
+    fontWeight: 'bold',
+    fontSize: 20,
+    color: '#222',
+  },
+  newsCard: {
+    backgroundColor: '#0099FF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 18,
+  },
+  newsTitle: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  newsDate: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  newsLink: {
+    color: '#fff',
+    textAlign: 'right',
+    textDecorationLine: 'underline',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginTop: 16,
+    marginBottom: 10,
+    color: '#222',
+  },
+  reservaCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    minWidth: 180,
+    marginRight: 0,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    marginBottom: 8,
+  },
+  reservaCardTitle: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    color: '#222',
+  },
+  votacaoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderTopWidth: 4,
+    borderTopColor: '#0099FF',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  votacaoTitle: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    color: '#222',
+    marginBottom: 4,
+  },
+  votacaoPeriodo: {
+    fontSize: 13,
+    color: '#222',
+    marginBottom: 2,
+  },
+  votacaoDescricao: {
+    fontSize: 13,
+    color: '#444',
   },
 });
 

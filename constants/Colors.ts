@@ -2,6 +2,7 @@
 
 // 1. Definimos as cores da sua marca
 const azulPrincipal = '#3A82F7';
+const azulEscuro = '#0B1B2B';
 const amareloAcao = '#FFC400';
 
 // 2. Criamos a paleta para o TEMA CLARO
@@ -10,6 +11,8 @@ export const CoresClaras = {
   primary: azulPrincipal,
   // Cor do texto/ícones em cima da cor primária
   onPrimary: '#FFFFFF',
+  // Texto padrão
+  text: '#1C1C1E',
   
   // Cor de fundo do app (branco)
   background: '#F5F5F5', // Um branco levemente acinzentado é mais confortável
@@ -27,21 +30,26 @@ export const CoresClaras = {
 
 // 3. Criamos a paleta para o TEMA ESCURO
 export const CoresEscuras = {
-  // Cor principal para botões e elementos ativos (amarelo)
-  primary: amareloAcao,
+  // Cor principal para botões e elementos ativos (azul)
+  primary: azulPrincipal,
+  // Variação para containers/realces
+  primaryContainer: '#123B6D',
   // Cor do texto/ícones em cima da cor primária
-  onPrimary: '#212121', // Um preto forte para bom contraste no amarelo
+  onPrimary: '#FFFFFF',
+  // Texto padrão
+  text: '#E6EAF0',
 
   // Cor de fundo do app (preto)
-  background: '#121212', // Um preto padrão para Material Design Dark
+  background: '#0D1117', // preto grafite (GitHub dark)
   // Cor do texto em cima do fundo
-  onBackground: '#E0E0E0', // Branco
+  onBackground: '#D0D7E1',
 
   // Cor de superfícies como cards e headers (cinza escuro)
-  surface: '#1E1E1E',
+  surface: '#111827', // cinza-azulado
   // Cor do texto em cima das superfícies
-  onSurface: '#E0E0E0',
+  onSurface: '#E6EAF0',
+  onSurfaceVariant: '#A7B0BE',
 
   // Cor para o contorno de elementos
-  outline: '#4A4A4A',
+  outline: '#2A3441',
 };

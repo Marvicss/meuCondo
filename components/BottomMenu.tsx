@@ -1,28 +1,38 @@
-import { Feather, FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Feather, FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { useRouter, usePathname } from 'expo-router';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
+const ICON_COLOR = '#2F3A4B';
+const ICON_ACTIVE_BG = '#0099FF';
+const ICON_ACTIVE_COLOR = '#fff';
+
 const BottomMenu: React.FC = () => {
   const router = useRouter();
+  const pathname = usePathname();
+
+  const menu = [
+    { route: '/home', icon: <Feather name="home" size={28} />, key: 'home' },
+    { route: '/prestacao-morador', icon: <FontAwesome5 name="money-bill-wave" size={28} />, key: 'cash' },
+    { route: '/notice', icon: <Feather name="volume-2" size={28} />, key: 'notice' },
+    { route: '/reservas/morador', icon: <Ionicons name="checkmark-done-outline" size={28} />, key: 'reservas' },
+    { route: '/parking', icon: <Ionicons name="calendar-outline" size={28} />, key: 'parking' },
+  ];
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => router.push('/home')}>
-        <Feather name="home" size={24} color="black" />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/prestacao-morador')}>
-        <Feather name="file-text" size={24} color="black" />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/notice')}>
-        <Feather name="volume-2" size={24} color="black" />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/parking')}>
-        <FontAwesome name="car" size={24} color="black" />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/reservas/morador')}>
-        <Feather name="calendar" size={24} color="black" />
-      </TouchableOpacity>
+      {menu.map(item => {
+        const isActive = pathname === item.route;
+        return (
+          <TouchableOpacity key={item.key} onPress={() => router.push(item.route as any)}>
+            <View style={isActive ? styles.activeCircle : undefined}>
+              {React.cloneElement(item.icon, {
+                color: isActive ? ICON_ACTIVE_COLOR : ICON_COLOR,
+              })}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 };
@@ -30,13 +40,22 @@ const BottomMenu: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#2F80ED',
+    backgroundColor: '#fff',
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingBottom: 20,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    paddingBottom: 5,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  activeCircle: {
+    backgroundColor: ICON_ACTIVE_BG,
+    borderRadius: 32,
+    padding: 12,
   },
 });
 

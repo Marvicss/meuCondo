@@ -1,10 +1,10 @@
+import BottomMenu from '@/components/BottomMenu'; // Importamos o menu
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { Appbar, Card, Chip, Divider, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import BottomMenu from '@/components/BottomMenu'; // Importamos o menu
 
 // Interfaces
 interface News { id: string; condominiumId: string; type: string; message: string; createdAt: string; }
@@ -12,15 +12,14 @@ interface News { id: string; condominiumId: string; type: string; message: strin
 // Capitaliza a primeira letra
 const capitalize = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
-// Mapeia o tipo do aviso para uma cor
-const getCorPorTipo = (tipo: string): string => {
-  switch (tipo.toLowerCase()) {
-    case 'urgente': return '#D32F2F';
-    case 'geral': return '#FFC400';
-    case 'manutenção': return '#757575';
-    case 'eventos': return '#2F80ED';
-    default: return '#BDBDBD';
-  }
+// Mantém a cor coerente com o tema, evitando hex fixo
+const getStripeColor = (tipo: string, colors: any) => {
+  const t = tipo.toLowerCase();
+  if (t === 'urgente') return '#D32F2F'; // vermelho consistente
+  if (t === 'geral') return colors.primary; // usa primária do app
+  if (t === 'manutenção') return colors.outline; // neutro/maintenance
+  if (t === 'eventos') return colors.primary; // eventos seguem primária
+  return colors.onSurfaceVariant; // fallback neutro
 };
 
 export default function QuadroAvisos() {
@@ -122,7 +121,7 @@ export default function QuadroAvisos() {
             filteredAvisos.map(aviso => (
               <Card key={aviso.id} style={[styles.card, { backgroundColor: theme.colors.surface }]}>
                 <View style={styles.cardLayout}>
-                  <View style={[styles.colorStripe, { backgroundColor: getCorPorTipo(aviso.type) }]} />
+                  <View style={[styles.colorStripe, { backgroundColor: getStripeColor(aviso.type, theme.colors) }]} />
                   <View style={styles.cardContentContainer}>
                     <Card.Content>
                       <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginBottom: 4, fontWeight: 'bold' }}>
