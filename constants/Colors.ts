@@ -15,7 +15,7 @@ export const CoresClaras = {
   text: '#1C1C1E',
   
   // Cor de fundo do app (branco)
-  background: '#F5F5F5', // Um branco levemente acinzentado é mais confortável
+  background: '#F8F8F8', // Um branco levemente acinzentado é mais confortável
   // Cor do texto em cima do fundo
   onBackground: '#1C1C1E', // Preto
 
