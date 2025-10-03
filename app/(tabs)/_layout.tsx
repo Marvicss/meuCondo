@@ -31,6 +31,7 @@ export default function TabLayout() {
           ),
         }}
       />
+     
       {/* Se você ainda tiver a tela 'explore', precisa garantir que o arquivo
           app/(tabs)/explore.tsx existe, ou remover esta linha abaixo. */}
       <Tabs.Screen

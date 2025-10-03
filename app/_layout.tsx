@@ -41,6 +41,7 @@ export default function RootLayout() {
           <Stack.Screen name="prestacao-morador/index" options={{ headerShown: false }} />
           <Stack.Screen name="parking/index" options={{ headerShown: false }} />
           <Stack.Screen name="notice/index" options={{ headerShown: false }} />
+          <Stack.Screen name="notice-sindico/index" options={{ headerShown: false }} />
         </Stack>
       </Portal.Host>
     </PaperProvider>

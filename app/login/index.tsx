@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { type NavigationProp, useNavigation } from '@react-navigation/native';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -83,9 +84,12 @@ export default function LoginScreen() {
             </Text>
           </Text>
 
-          <View style={styles.roleButton}>
-            <Text style={styles.roleText}>Sou Síndico</Text>
-          </View>
+          <TouchableOpacity
+  style={styles.roleButton}
+  onPress={() => router.push('/notice-sindico')} // <- ROTA PARA A TELA DO SÍNDICO
+>
+  <Text style={styles.roleText}>Sou Síndico</Text>
+</TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
