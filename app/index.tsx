@@ -1,12 +1,18 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+// 1. Importe o componente 'Image'
+import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
 
 export default function Inicio() {
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.brand}>MeuCondo</Text>
+      {/* 2. Troque o <Text> pela sua <Image> */}
+      <Image
+        source={require('../assets/images/Logo.png')} // Caminho para a sua imagem
+        style={styles.logo}
+      />
+
       <Pressable style={styles.button} onPress={() => router.replace('/login')}>
         <Text style={styles.buttonText}>Começar</Text>
       </Pressable>
@@ -22,13 +28,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
-  brand: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: 1,
+  // 3. Crie um estilo para a logo
+  logo: {
+    width: 350, // Defina a largura
+    height: 200, // Defina a altura
+    resizeMode: 'contain', // Garante que a logo não seja cortada
     marginBottom: 120,
-    fontFamily: 'System',
   },
   button: {
     position: 'absolute',
