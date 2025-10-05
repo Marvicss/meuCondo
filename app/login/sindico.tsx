@@ -1,42 +1,42 @@
-// app/login/index.tsx
+// app/login/sindico.tsx
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
-export default function LoginScreen() {
+export default function LoginSindicoScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  async function handleLogin() {
+  async function handleLoginSindico() {
     try {
       const response = await fetch("https://meu-condo.vercel.app/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role: "sindico" }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        Alert.alert("Erro", errorData.message || "Falha no login");
+        Alert.alert("Erro no Login", errorData.message || "Credenciais de síndico inválidas");
         return;
       }
 
       const data = await response.json();
       await AsyncStorage.setItem("token", data.token);
-      router.replace("/home"); // Redireciona para a rota /home
+      router.replace("/home");
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
       console.error(error);
@@ -50,9 +50,9 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
-          <Text style={styles.title}>Bem Vindo ao</Text>
-          <Text style={styles.brand}>MeuCondo!</Text>
-          <Text style={styles.subtitle}>Transparência e organização para a vida em condomínio</Text>
+          <Text style={styles.title}>Área do</Text>
+          <Text style={styles.brand}>Síndico</Text>
+          <Text style={styles.subtitle}>Acesso administrativo do MeuCondo</Text>
 
           <Text style={styles.formLabel}>Faça login para continuar</Text>
           <TextInput
@@ -73,31 +73,21 @@ export default function LoginScreen() {
             onChangeText={setPassword}
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Entrar</Text>
+          <TouchableOpacity style={styles.button} onPress={handleLoginSindico}>
+            <Text style={styles.buttonText}>Entrar como Síndico</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={() => router.back()}>
+             <Text style={styles.link}>Voltar</Text>
           </TouchableOpacity>
 
-          <Text style={styles.linkText}>
-            Não tem uma conta?{" "}
-            <Text style={styles.link} onPress={() => router.push("/register")}>
-              Cadastre-se.
-            </Text>
-          </Text>
-
-          {/* ===== ALTERAÇÃO COM A ROTA CORRETA ===== */}
-          <TouchableOpacity 
-            style={styles.roleButton}
-            onPress={() => router.push('/login/sindico')}
-          >
-            <Text style={styles.roleText}>Sou Síndico</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-// Estilos originais do seu arquivo
+// ===== ESTILOS COM A COR DO "VOLTAR" AJUSTADA =====
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -142,7 +132,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 24,
   },
   buttonText: {
     textAlign: "center",
@@ -150,26 +140,11 @@ const styles = StyleSheet.create({
     color: "#0095FF",
     fontSize: 18,
   },
-  linkText: {
-    color: "#fff",
-    marginTop: 16,
-    textAlign: "center",
-    fontSize: 14,
-  },
   link: {
-    textDecorationLine: "underline",
     color: "#fff",
     fontWeight: "bold",
-  },
-  roleButton: {
-    marginTop: 32,
-    alignItems: "center",
-    padding: 10,
-  },
-  roleText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
-    opacity: 0.8,
+    textAlign: "center",
+    fontSize: 15, // Ajustado para ficar igual ao "Sou Síndico"
+    opacity: 0.8, // <-- AQUI ESTÁ A MUDANÇA
   },
 });

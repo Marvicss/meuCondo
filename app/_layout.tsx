@@ -1,7 +1,7 @@
 
-import { useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
-import { MD3LightTheme, MD3DarkTheme, PaperProvider, Portal } from 'react-native-paper';
+import { useColorScheme } from 'react-native';
+import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
 import { CoresClaras, CoresEscuras } from '../constants/Colors';
 
 export default function RootLayout() {
@@ -41,6 +41,7 @@ export default function RootLayout() {
           <Stack.Screen name="prestacao-morador/index" options={{ headerShown: false }} />
           <Stack.Screen name="parking/index" options={{ headerShown: false }} />
           <Stack.Screen name="notice/index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
         </Stack>
       </Portal.Host>
     </PaperProvider>
