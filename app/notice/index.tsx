@@ -1,4 +1,5 @@
 import BottomMenu from '@/components/BottomMenu'; // Importamos o menu
+import { API_URL } from '@/constants/envs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -42,7 +43,7 @@ export default function QuadroAvisos() {
             return;
           }
 
-          const response = await fetch('https://meu-condo.vercel.app/news/', {
+          const response = await fetch(`${API_URL}/news/`, {
             headers: { "Authorization": `Bearer ${token}` },
           });
 

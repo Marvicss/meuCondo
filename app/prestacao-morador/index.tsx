@@ -1,3 +1,4 @@
+import { API_URL } from '@/constants/envs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
@@ -114,8 +115,8 @@ export default function PrestacaoDeContasScreen() {
       const decoded: DecodedToken = jwtDecode(token);
 
       const [userResponse, condosResponse] = await Promise.all([
-        fetch(`https://meu-condo.vercel.app/users/${decoded.userId}`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch("https://meu-condo.vercel.app/condominiums/", { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`${API_URL}/users/${decoded.userId}`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_URL}/condominiums/`, { headers: { "Authorization": `Bearer ${token}` } })
       ]);
 
       if (!userResponse.ok) throw new Error("Não foi possível buscar dados do usuário.");
@@ -129,7 +130,7 @@ export default function PrestacaoDeContasScreen() {
       const condominiumIdParaTeste = condominiums[0].id;
 
       const expensesResponse = await fetch(
-        `https://meu-condo.vercel.app/accountabilities/condominium/${condominiumIdParaTeste}`,
+        `${API_URL}/accountabilities/condominium/${condominiumIdParaTeste}`,
         { headers: { "Authorization": `Bearer ${token}` } }
       );
       if (!expensesResponse.ok) throw new Error("Não foi possível buscar as prestações de contas.");

@@ -1,8 +1,9 @@
+import { API_URL } from "@/constants/envs";
+import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface ParkingLot {
   id: string;
@@ -25,7 +26,7 @@ export default function ParkingDetailPage() {
     const fetchParking = async () => {
       const token = await AsyncStorage.getItem("token");
 
-      const res = await fetch(`https://meu-condo.vercel.app/parkings/${id}`, {
+      const res = await fetch(`${API_URL}/parkings/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Appbar, Button, Card, Text, useTheme, Chip } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import BottomMenu from '@/components/BottomMenu';
+import { API_URL } from '@/constants/envs';
+import { MaterialCommunityIcons } from '@expo/vector-icons'; // Usaremos para o ícone do carro
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons'; // Usaremos para o ícone do carro
-import BottomMenu from '@/components/BottomMenu';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Appbar, Button, Card, Chip, Text, useTheme } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- DEFINIÇÃO DE TIPOS ---
 type ParkingLot = {
@@ -33,7 +34,7 @@ export default function ParkingLotPage() {
             return;
           }
           // Lógica com fetch, como solicitado
-          const response = await fetch("https://meu-condo.vercel.app/parkings/", {
+          const response = await fetch(`${API_URL}/parkings/`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!response.ok) throw new Error('Falha ao buscar vagas');

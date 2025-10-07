@@ -1,3 +1,4 @@
+import { API_URL } from "@/constants/envs";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -19,7 +20,7 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     try {
-      const response = await fetch("https://meu-condo.vercel.app/users/", {
+      const response = await fetch(`${API_URL}/users/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1,5 +1,5 @@
 import { Feather, FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { useRouter, usePathname } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -17,6 +17,7 @@ const BottomMenu: React.FC = () => {
     { route: '/notice', icon: <Feather name="volume-2" size={28} />, key: 'notice' },
     { route: '/reservas/morador', icon: <Ionicons name="checkmark-done-outline" size={28} />, key: 'reservas' },
     { route: '/parking', icon: <Ionicons name="calendar-outline" size={28} />, key: 'parking' },
+    { route: '/ocurrency', icon: <Ionicons name="warning-outline" size={28} />, key: 'ocurrency' },
   ];
 
   return (

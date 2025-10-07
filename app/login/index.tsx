@@ -1,5 +1,6 @@
 // app/login/index.tsx
 
+import { API_URL } from "@/constants/envs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -22,11 +23,15 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     try {
-      const response = await fetch("https://meu-condo.vercel.app/auth/login", {
+      console.log(`A url que esta sendo importada :`, API_URL)
+      const apiUrl = `${API_URL}/auth/login`
+      console.log("apiUrl: " , apiUrl)
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      console.log(response.json)
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -87,7 +92,7 @@ export default function LoginScreen() {
           {/* ===== ALTERAÇÃO COM A ROTA CORRETA ===== */}
           <TouchableOpacity 
             style={styles.roleButton}
-            onPress={() => router.push('/login/sindico')}
+            onPress={() => router.push('/login/sindico' as any)}
           >
             <Text style={styles.roleText}>Sou Síndico</Text>
           </TouchableOpacity>
