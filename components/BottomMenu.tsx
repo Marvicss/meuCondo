@@ -1,22 +1,47 @@
-import { Feather, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+// Importe o componente 'Image'
+import { StyleSheet, TouchableOpacity, View, Image } from 'react-native';
 
-const ICON_COLOR = '#2F3A4B';
 const ICON_ACTIVE_BG = '#0099FF';
-const ICON_ACTIVE_COLOR = '#fff';
 
 const BottomMenu: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Array de menu atualizado com imagens
   const menu = [
-    { route: '/home', icon: <Feather name="home" size={28} />, key: 'home' },
-    { route: '/prestacao-morador', icon: <FontAwesome5 name="money-bill-wave" size={28} />, key: 'cash' },
-    { route: '/notice', icon: <Feather name="volume-2" size={28} />, key: 'notice' },
-    { route: '/reservas/morador', icon: <Ionicons name="checkmark-done-outline" size={28} />, key: 'reservas' },
-    { route: '/parking', icon: <Ionicons name="calendar-outline" size={28} />, key: 'parking' },
+    { 
+      route: '/home', 
+      key: 'home',
+      // Substitua com os nomes corretos dos seus arquivos
+      icon: require('../assets/icons/Home.png'), 
+      iconActive: require('../assets/icons/homecheia.png') 
+    },
+    { 
+      route: '/prestacao-morador', 
+      key: 'cash',
+      icon: require('../assets/icons/Dollar.png'),
+      iconActive: require('../assets/icons/dollarcheia.png')
+    },
+    { 
+      route: '/notice', 
+      key: 'notice',
+      icon: require('../assets/icons/notice.png'),
+      iconActive: require('../assets/icons/noticecheia.png')
+    },
+    { 
+      route: '/reservas/morador', 
+      key: 'reservas',
+      icon: require('../assets/icons/Todo.png'),
+      iconActive: require('../assets/icons/votarcheia.png')
+    },
+    { 
+      route: '/parking', 
+      key: 'parking',
+      icon: require('../assets/icons/Calendar.png'),
+      iconActive: require('../assets/icons/calendarcheia.png')
+    },
   ];
 
   return (
@@ -26,9 +51,12 @@ const BottomMenu: React.FC = () => {
         return (
           <TouchableOpacity key={item.key} onPress={() => router.push(item.route as any)}>
             <View style={isActive ? styles.activeCircle : undefined}>
-              {React.cloneElement(item.icon, {
-                color: isActive ? ICON_ACTIVE_COLOR : ICON_COLOR,
-              })}
+              {/* Usamos o componente Image aqui */}
+              <Image
+                // A fonte (source) muda se o item estiver ativo
+                source={isActive ? item.iconActive : item.icon}
+                style={styles.icon}
+              />
             </View>
           </TouchableOpacity>
         );
@@ -56,6 +84,12 @@ const styles = StyleSheet.create({
     backgroundColor: ICON_ACTIVE_BG,
     borderRadius: 32,
     padding: 12,
+  },
+  // Novo estilo para definir o tamanho da imagem
+  icon: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain', // Garante que a imagem caiba no espaço
   },
 });
 

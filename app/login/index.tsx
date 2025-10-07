@@ -14,11 +14,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Feather } from "@expo/vector-icons"; 
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   async function handleLogin() {
     try {
@@ -64,14 +66,23 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
-            placeholder="Senha"
-            secureTextEntry
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            value={password}
-            onChangeText={setPassword}
-          />
+          <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Senha"
+          style={styles.inputPassword}
+          placeholderTextColor="#e0e0e0"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!isPasswordVisible} // Controlado pelo estado
+      />
+      <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+        <Feather
+          name={isPasswordVisible ? "eye-off" : "eye"}
+          size={24}
+          color="#e0e0e0"
+        />
+      </TouchableOpacity>
+    </View>
 
           <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
@@ -172,4 +183,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     opacity: 0.8,
   },
+  passwordContainer: {
+    flexDirection: 'row',      
+    alignItems: 'center',      
+    borderBottomWidth: 1,      
+    borderColor: '#e0e0e0',
+    marginBottom: 18,
+  },
+  inputPassword: {
+    flex: 1,                   
+    color: '#fff',
+    paddingVertical: 6,
+    fontSize: 16,
+  },
+ 
 });

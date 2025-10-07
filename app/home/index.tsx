@@ -1,10 +1,11 @@
 import BottomMenu from '@/components/BottomMenu';
+import SideMenu from '@/components/sideMenu';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -161,6 +162,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 20,
     color: '#222',
+  },
+   modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)', // Fundo escurecido
+    justifyContent: 'flex-start',
+  },
+  menuContainer: {
+    width: '80%', // Ocupa 80% da largura da tela
+    height: '100%',
+    backgroundColor: '#fff', // Cor de fundo do menu
   },
   newsCard: {
     backgroundColor: '#0099FF',
