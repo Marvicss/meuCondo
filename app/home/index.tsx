@@ -1,4 +1,5 @@
 import BottomMenu from '@/components/BottomMenu';
+import { API_URL } from '@/constants/envs';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -39,9 +40,9 @@ const Home = () => {
 
           // Usando Promise.all para buscar tudo em paralelo
           const [userResponse, newsResponse, partyRoomResponse] = await Promise.all([
-            fetch(`https://meu-condo.vercel.app/users/${decoded.userId}`, { headers: { Authorization: `Bearer ${token}` } }),
-            fetch(`https://meu-condo.vercel.app/news/`, { headers: { Authorization: `Bearer ${token}` } }),
-            fetch(`https://meu-condo.vercel.app/partyrooms/`, { headers: { Authorization: `Bearer ${token}` } })
+            fetch(`${API_URL}/users/${decoded.userId}`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API_URL}/news/`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${API_URL}/partyrooms/`, { headers: { Authorization: `Bearer ${token}` } })
           ]);
 
           // Processa as respostas

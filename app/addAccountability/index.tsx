@@ -1,3 +1,4 @@
+import { API_URL } from "@/constants/envs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
@@ -45,7 +46,7 @@ export default function AddAccountability() {
           return;
         }
 
-        const response = await fetch("https://meu-condo.vercel.app/condominiums/", {
+        const response = await fetch(`${API_URL}/condominiums/`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -107,7 +108,7 @@ export default function AddAccountability() {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      const response = await fetch("https://meu-condo.vercel.app/accountabilities/", {
+      const response = await fetch(`${API_URL}/accountabilities/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
