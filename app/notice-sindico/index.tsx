@@ -38,7 +38,7 @@ const Icones = {
   `,
 };
 
-// --- Tipagem dos dados (de acordo com a API) ---
+
 type Aviso = {
   id: string;
   type: string;
@@ -46,10 +46,10 @@ type Aviso = {
   createdAt: string;
 };
 
-// Capitaliza a primeira letra para o título
+
 const capitalize = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
-// --- Componente do Card de Aviso ---
+
 const AvisoCard = ({ item, onEdit, onRemove }: { item: Aviso, onEdit: (item: Aviso) => void, onRemove: (id: string) => void }) => (
   <View style={styles.cardContainer}>
     <View style={styles.cardIndicator} />
@@ -75,7 +75,7 @@ const AvisoCard = ({ item, onEdit, onRemove }: { item: Aviso, onEdit: (item: Avi
   </View>
 );
 
-// --- Componente da Tela Principal ---
+
 const QuadroDeAvisosScreen = () => {
   const router = useRouter();
   const [avisos, setAvisos] = useState<Aviso[]>([]);
@@ -93,7 +93,7 @@ const QuadroDeAvisosScreen = () => {
             return;
           }
 
-          const response = await fetch('https://meu-condo.vercel.app/news/', {
+          const response = await fetch('https://meu-condo.onrender.com/news', {
             headers: { "Authorization": `Bearer ${token}` },
           });
 
@@ -157,7 +157,7 @@ const QuadroDeAvisosScreen = () => {
   };
   
   const handleEdit = (item: Aviso) => {
-    // Futuramente, navegará para a tela de edição
+    
     Alert.alert("Funcionalidade em Desenvolvimento", "A edição de avisos estará disponível em breve.");
   };
 
@@ -200,7 +200,6 @@ const QuadroDeAvisosScreen = () => {
   );
 };
 
-// --- Estilos ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F4F5F7' },
   container: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },

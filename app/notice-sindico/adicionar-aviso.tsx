@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'; // 1. Importar AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -14,18 +14,17 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import RNPickerSelect from 'react-native-picker-select';
-import { Chevron } from 'react-native-shapes';
+import { Picker } from '@react-native-picker/picker';
 
 const AdicionarAvisoScreen = () => {
   const router = useRouter();
   
-  // Estados para os campos do formulário
+
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState<string | null>(null);
 
-  // Estados para o seletor de data e hora
+
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
@@ -43,6 +42,7 @@ const AdicionarAvisoScreen = () => {
   };
 
   const handlePublicar = async () => {
+    
     if (!titulo.trim() || !descricao.trim() || !categoria) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return;
@@ -137,20 +137,19 @@ const AdicionarAvisoScreen = () => {
           )}
 
           <Text style={styles.label}>Categoria</Text>
-          <RNPickerSelect
-            onValueChange={(value: React.SetStateAction<string | null>) => setCategoria(value)}
-            placeholder={{ label: 'Selecione uma categoria', value: null }}
-            items={[
-              { label: 'Urgente', value: 'urgente' },
-              { label: 'Manutenção', value: 'manutencao' },
-              { label: 'Eventos', value: 'eventos' },
-              { label: 'Geral', value: 'geral' },
-            ]}
-            value={categoria}
-            style={pickerSelectStyles}
-            useNativeAndroidPickerStyle={false}
-            Icon={() => <Chevron size={1.5} color="gray" />}
-          />
+          {/* 2. Substituímos o RNPickerSelect pelo Picker dentro de uma View para estilização */}
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={categoria}
+              onValueChange={(itemValue) => setCategoria(itemValue)}
+            >
+              <Picker.Item label="Selecione uma categoria" value={null} />
+              <Picker.Item label="Urgente" value="urgente" />
+              <Picker.Item label="Manutenção" value="manutencao" />
+              <Picker.Item label="Eventos" value="eventos" />
+              <Picker.Item label="Geral" value="geral" />
+            </Picker>
+          </View>
 
           <TouchableOpacity style={styles.publishButton} onPress={handlePublicar}>
             <Text style={styles.publishButtonText}>Publicar</Text>
@@ -160,7 +159,6 @@ const AdicionarAvisoScreen = () => {
     </SafeAreaView>
   );
 };
-
 
 // --- Estilos ---
 const styles = StyleSheet.create({
@@ -193,7 +191,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDE3E9',
     paddingVertical: 12,
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 10, // Adicionado para espaçamento
   },
   datePickerText: {
     fontSize: 16,
@@ -211,21 +209,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-});
 
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16, paddingVertical: 12, paddingHorizontal: 10, borderWidth: 1,
-    borderColor: '#DDE3E9', borderRadius: 8, color: 'black', paddingRight: 30,
+  pickerContainer: {
     backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDE3E9',
+    justifyContent: 'center', 
+    height: 50, 
   },
-  inputAndroid: {
-    fontSize: 16, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1,
-    borderColor: '#DDE3E9', borderRadius: 8, color: 'black', paddingRight: 30,
-    backgroundColor: 'white',
-  },
-  iconContainer: { top: Platform.OS === 'ios' ? 15 : 20, right: 15 },
-  placeholder: { color: '#999' },
 });
-
 export default AdicionarAvisoScreen;

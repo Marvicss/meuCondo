@@ -14,7 +14,7 @@ const BottomMenu: React.FC = () => {
   const menu = [
     { route: '/home', icon: <Feather name="home" size={28} />, key: 'home' },
     { route: '/prestacao-morador', icon: <FontAwesome5 name="money-bill-wave" size={28} />, key: 'cash' },
-    { route: '/notice', icon: <Feather name="volume-2" size={28} />, key: 'notice' },
+    { route: '/notice-sindico', icon: <Feather name="volume-2" size={28} />, key: 'notice' },
     { route: '/reservas/morador', icon: <Ionicons name="checkmark-done-outline" size={28} />, key: 'reservas' },
     { route: '/parking', icon: <Ionicons name="calendar-outline" size={28} />, key: 'parking' },
   ];
