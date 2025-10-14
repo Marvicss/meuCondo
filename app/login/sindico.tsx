@@ -1,5 +1,6 @@
 // app/login/sindico.tsx
 
+import { API_URL } from "@/constants/envs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -22,7 +23,7 @@ export default function LoginSindicoScreen() {
 
   async function handleLoginSindico() {
     try {
-      const response = await fetch("https://meu-condo.vercel.app/auth/login", {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, role: "sindico" }),
