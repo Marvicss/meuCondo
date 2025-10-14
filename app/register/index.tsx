@@ -1,9 +1,16 @@
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
-  TouchableOpacity, View
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function RegisterScreen() {
@@ -15,13 +22,16 @@ export default function RegisterScreen() {
   const [username, setUsername] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [cpf, setCpf] = useState("");
-  const [userType, setUserType] = useState<"USER" | "ADMIN">("USER");
+  const [userType, setUserType] = useState < "USER" | "ADMIN" > ("USER");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   async function handleRegister() {
     try {
       const response = await fetch("https://meu-condo.vercel.app/users/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           fullName,
           email,
@@ -52,7 +62,10 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.container}>
           <Text style={styles.title}>Bem Vindo ao</Text>
           <Text style={styles.brand}>MeuCondo!</Text>
@@ -62,59 +75,99 @@ export default function RegisterScreen() {
 
           <Text style={styles.formLabel}>Cadastre-se para continuar</Text>
 
-          <TextInput
-            placeholder="Nome completo"
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            value={fullName}
-            onChangeText={setFullName}
-          />
-          <TextInput
-            placeholder="E-Mail"
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <TextInput
-            placeholder="Senha"
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-          <TextInput
-            placeholder="Nome de Usuário"
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            value={username}
-            onChangeText={setUsername}
-          />
-          <TextInput
-            placeholder="Número de telefone"
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-          />
-          <TextInput
-            placeholder="CPF"
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            keyboardType="numeric"
-            value={cpf}
-            onChangeText={setCpf}
-          />
+          {/* Input Nome Completo */}
+          <View style={styles.inputContainer}>
+            <Feather name="user" size={20} color="#e0e0e0" style={styles.icon} />
+            <TextInput
+              placeholder="Nome completo"
+              style={styles.input}
+              placeholderTextColor="#e0e0e0"
+              value={fullName}
+              onChangeText={setFullName}
+            />
+          </View>
+
+          {/* Input E-Mail */}
+          <View style={styles.inputContainer}>
+            <Feather name="mail" size={20} color="#e0e0e0" style={styles.icon} />
+            <TextInput
+              placeholder="E-Mail"
+              style={styles.input}
+              placeholderTextColor="#e0e0e0"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
+
+          {/* Input Senha */}
+          <View style={styles.inputContainer}>
+            <Feather name="lock" size={20} color="#e0e0e0" style={styles.icon} />
+            <TextInput
+              placeholder="Senha"
+              style={styles.input}
+              placeholderTextColor="#e0e0e0"
+              secureTextEntry={!isPasswordVisible}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+              <Feather
+                name={isPasswordVisible ? "eye-off" : "eye"}
+                size={20}
+                color="#e0e0e0"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Input Nome de Usuário */}
+          <View style={styles.inputContainer}>
+            <Feather name="at-sign" size={20} color="#e0e0e0" style={styles.icon} />
+            <TextInput
+              placeholder="Nome de Usuário"
+              style={styles.input}
+              placeholderTextColor="#e0e0e0"
+              autoCapitalize="none"
+              value={username}
+              onChangeText={setUsername}
+            />
+          </View>
+
+          {/* Input Telefone */}
+          <View style={styles.inputContainer}>
+            <Feather name="phone" size={20} color="#e0e0e0" style={styles.icon} />
+            <TextInput
+              placeholder="Número de telefone"
+              style={styles.input}
+              placeholderTextColor="#e0e0e0"
+              keyboardType="phone-pad"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+            />
+          </View>
+
+          {/* Input CPF */}
+          <View style={styles.inputContainer}>
+            <Feather name="file-text" size={20} color="#e0e0e0" style={styles.icon} />
+            <TextInput
+              placeholder="CPF"
+              style={styles.input}
+              placeholderTextColor="#e0e0e0"
+              keyboardType="numeric"
+              value={cpf}
+              onChangeText={setCpf}
+            />
+          </View>
 
           <TouchableOpacity style={styles.button} onPress={handleRegister}>
             <Text style={styles.buttonText}>Cadastrar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.roleButton} onPress={() => setUserType("USER")}>
+          <TouchableOpacity
+            style={styles.roleButton}
+            onPress={() => setUserType("USER")}
+          >
             <Text style={styles.roleText}>Sou Morador</Text>
           </TouchableOpacity>
         </View>
@@ -140,7 +193,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: "#fff",
     fontWeight: "900",
-    fontFamily: 'System',
+    fontFamily: "System",
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -151,16 +204,24 @@ const styles = StyleSheet.create({
   },
   formLabel: {
     color: "#fff",
-    marginBottom: 8,
+    marginBottom: 16,
     fontWeight: "bold",
     fontSize: 15,
   },
-  input: {
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     borderBottomWidth: 1,
     borderColor: "#e0e0e0",
-    color: "#fff",
     marginBottom: 18,
     paddingVertical: 6,
+  },
+  icon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    color: "#fff",
     fontSize: 16,
   },
   button: {
@@ -170,6 +231,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
   },
   buttonText: {
     textAlign: "center",

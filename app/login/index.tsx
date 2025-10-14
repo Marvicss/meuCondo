@@ -10,13 +10,17 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Pressable, // 1. Importar o Pressable
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons"; // 2. Importar o pacote de ícones
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // 3. Adicionar estado para visibilidade da senha
+  const [isPasswordVisible, setIsPasswordVisible] = useState(true);
 
   async function handleLogin() {
     try {
@@ -63,14 +67,25 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
-            placeholder="Senha"
-            secureTextEntry
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            value={password}
-            onChangeText={setPassword}
-          />
+
+          {/* 4. Criar um container para o input de senha e o ícone */}
+          <View style={styles.passwordContainer}>
+            <TextInput
+              placeholder="Senha"
+              secureTextEntry={isPasswordVisible} // Controlado pelo estado
+              style={styles.passwordInput}
+              placeholderTextColor="#e0e0e0"
+              value={password}
+              onChangeText={setPassword}
+            />
+            <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+              <Ionicons
+                name={isPasswordVisible ? "eye-off" : "eye"} // Alterna o ícone
+                size={24}
+                color="#e0e0e0"
+              />
+            </Pressable>
+          </View>
 
           <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
@@ -93,6 +108,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... (estilos existentes)
   container: {
     flex: 1,
     backgroundColor: "#0095FF",
@@ -109,7 +125,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: "#fff",
     fontWeight: "900",
-    fontFamily: 'System',
+    fontFamily: "System",
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -129,6 +145,20 @@ const styles = StyleSheet.create({
     borderColor: "#e0e0e0",
     color: "#fff",
     marginBottom: 18,
+    paddingVertical: 6,
+    fontSize: 16,
+  },
+  // 5. Adicionar os novos estilos para o campo de senha
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderColor: "#e0e0e0",
+    marginBottom: 18,
+  },
+  passwordInput: {
+    flex: 1,
+    color: "#fff",
     paddingVertical: 6,
     fontSize: 16,
   },
