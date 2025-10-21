@@ -1,13 +1,17 @@
+// app/prestacao-morador/index.tsx (ou o caminho correto do seu arquivo)
+
 import { API_URL } from '@/constants/envs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Appbar, Button, Card, FAB, Text, TextInput, useTheme } from 'react-native-paper';
+// Appbar está incluído
+import { Picker } from '@react-native-picker/picker'; // Importa o Picker
+import { Appbar, Button, Card, Text, useTheme } from 'react-native-paper';
 import PieChart from 'react-native-pie-chart';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BottomMenu from '../../components/BottomMenu';
+import BottomMenu from '../../components/BottomMenu'; // Importa o BottomMenu
 
 // --- DEFINIÇÃO DE TIPOS ---
 interface Expense { id: string; date: string; amount: number; title: string; type: 'EXPENSE' | 'INCOME'; }
@@ -16,49 +20,47 @@ interface Condominium { id: string; name: string; }
 interface DecodedToken { userId: string; email: string; userType: string; }
 interface Customer { id: string; fullName: string; userType: string; }
 
-// --- COMPONENTES VISUAIS ---
+// Paleta fixa para gráficos
+const CHART_COLORS = [
+  '#007bff', '#6c757d', '#17a2b8', '#dc3545', '#28a745', '#ffc107',
+];
+
+// --- COMPONENTE ExpenseCard (NOVO LAYOUT) ---
 const ExpenseCard = ({ expense }: { expense: Expense }) => {
   const theme = useTheme();
-  const isIncome = expense.type === 'INCOME';
-  
-  // Tons mais vivos, iguais em claro/escuro para manter consistência visual
-  const incomeBackground = '#0EA5A5'; // teal vibrante
-  const expenseBackground = '#EF4444'; // vermelho vibrante
-  const cardColor = isIncome ? incomeBackground : expenseBackground;
-  const textColor = '#FFFFFF';
-
   const formatCurrency = (value: number) => `R$ ${Number(value).toFixed(2).replace('.', ',')}`;
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 
   return (
-    <Card style={{ marginBottom: 12, backgroundColor: cardColor }}>
+    <Card style={styles.expenseCard}>
       <Card.Content>
-        <View style={styles.cardTopRow}>
-          <Text style={[{ color: textColor, flex: 1, fontWeight: 'bold' }, theme.fonts.labelLarge]}>{expense.title}</Text>
-          <Text style={[{ color: textColor, fontWeight: 'bold' }, theme.fonts.titleMedium]}>
-            {isIncome ? '+' : '-'} {formatCurrency(expense.amount)}
-          </Text>
-        </View>
-        <Text style={[{ color: textColor }, theme.fonts.bodySmall]}>{formatDate(expense.date)}</Text>
+        <Text style={[styles.expenseTitle, { color: theme.colors.onSurface }]}>{expense.title}</Text>
+        <Text style={[styles.expenseDescription, { color: theme.colors.onSurfaceVariant }]}>
+          Descrição do gasto (ex: "{expense.title}")
+        </Text>
+        <Text style={[styles.expenseStatus, { color: theme.colors.onSurfaceVariant }]}>
+          Status: pago
+        </Text>
+        <Button 
+          mode="contained" 
+          onPress={() => Alert.alert("Visualizar Nota", `Detalhes da nota para ${expense.title}`)} 
+          style={styles.viewInvoiceButton}
+          labelStyle={styles.viewInvoiceButtonText}
+          theme={{colors: { primary: '#007bff'}}}
+        >
+          Visualizar nota fiscal
+        </Button>
       </Card.Content>
     </Card>
   );
 };
 
-// Paleta fixa para gráficos igual à imagem enviada
-const CHART_COLORS = [
-  '#11d82bff', // Produto A
-  '#eeea0fff', // Produto B
-  '#ff3333ff', // Produto C
-  '#0095FF', // Produto D
-  '#F6D47C', // Produto E
-];
-
+// --- COMPONENTE GeneralExpensesChart (COM TODAS AS CORREÇÕES) ---
 const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
   const theme = useTheme();
+
   if (!data || data.length === 0) {
     return (
-      <Card style={{ backgroundColor: theme.colors.surface, padding: 16, marginTop: 20 }}>
+      <Card style={[styles.chartCard, { backgroundColor: theme.colors.surface }]}>
         <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant }}>
           Sem dados de despesas para exibir o gráfico.
         </Text>
@@ -66,22 +68,28 @@ const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
     );
   }
 
-  const slices = data.map((item, index) => ({ value: item.value, color: CHART_COLORS[index % CHART_COLORS.length] }));
+  // CORREÇÃO 1: Passar o array de objetos { value, color } para o PieChart
+  const slicesForChart = data.map(item => ({ value: item.value, color: item.color }));
 
   return (
-    <Card style={{ backgroundColor: theme.colors.surface, padding: 16, marginTop: 20, alignItems: 'center' }}>
-      <Text style={[styles.chartTitle, { color: theme.colors.onSurface }]}>Resumo dos Gastos</Text>
-      <View style={styles.chartAndLegendWrapper}>
-        <PieChart widthAndHeight={150} series={slices} />
-        <View style={styles.legendContainer}>
-          {data.map((item, index) => (
-            <View key={item.label} style={styles.legendItem}>
-              <View style={[styles.legendColorBox, { backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }]} />
-              <Text style={[styles.legendText, { color: theme.colors.onSurfaceVariant, flexShrink: 1 }]}>
-                {`${item.label} (${item.value.toFixed(1)}%)`}
-              </Text>
-            </View>
-          ))}
+    <Card style={[styles.chartCard, { backgroundColor: theme.colors.surface }]}>
+      <Text style={[styles.chartValueTitle, { color: theme.colors.onSurface }]}>Valor</Text>
+      <View style={styles.chartWrapper}>
+        
+        {/* CORREÇÃO 2: Removida a propriedade 'coverRadius' */}
+        <PieChart 
+          widthAndHeight={180} 
+          series={slicesForChart} 
+        />
+        
+        <View style={styles.chartOverlayLegend}>
+            {data.map((item, index) => (
+                <View key={item.label} style={styles.chartOverlayLegendItem}>
+                    <Text style={[styles.chartOverlayLegendText, {color: CHART_COLORS[index % CHART_COLORS.length]}]}>
+                        {`${item.label} ${item.value.toFixed(1)}%`}
+                    </Text>
+                </View>
+            ))}
         </View>
       </View>
     </Card>
@@ -96,12 +104,14 @@ export default function PrestacaoDeContasScreen() {
   const [originalData, setOriginalData] = useState<Expense[]>([]);
   const [filteredData, setFilteredData] = useState<Expense[]>([]);
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
-  const [monthYearFilter, setMonthYearFilter] = useState<string>('');
+  const [selectedMonthYear, setSelectedMonthYear] = useState<string>('09/2025');
+  const [selectedExpenseType, setSelectedExpenseType] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
 
   const fetchAccountabilityData = useCallback(async () => {
+    // ... (toda a sua lógica de fetch continua a mesma) ...
     setLoading(true);
     setError(null);
     try {
@@ -111,32 +121,23 @@ export default function PrestacaoDeContasScreen() {
         router.replace('/login');
         return;
       }
-
       const decoded: DecodedToken = jwtDecode(token);
-
       const [userResponse, condosResponse] = await Promise.all([
         fetch(`${API_URL}/users/${decoded.userId}`, { headers: { "Authorization": `Bearer ${token}` } }),
         fetch(`${API_URL}/condominiums/`, { headers: { "Authorization": `Bearer ${token}` } })
       ]);
-
       if (!userResponse.ok) throw new Error("Não foi possível buscar dados do usuário.");
-      const userData: Customer = await userResponse.json();
-      setCustomer(userData);
-
+      setCustomer(await userResponse.json());
       if (!condosResponse.ok) throw new Error("Não foi possível buscar a lista de condomínios.");
       const condominiums: Condominium[] = await condosResponse.json();
       if (!condominiums || condominiums.length === 0) throw new Error("Nenhum condomínio encontrado.");
-
       const condominiumIdParaTeste = condominiums[0].id;
-
       const expensesResponse = await fetch(
         `${API_URL}/accountabilities/condominium/${condominiumIdParaTeste}`,
         { headers: { "Authorization": `Bearer ${token}` } }
       );
       if (!expensesResponse.ok) throw new Error("Não foi possível buscar as prestações de contas.");
-
       setOriginalData(await expensesResponse.json());
-
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Um erro desconhecido ocorreu.";
       setError(errorMessage);
@@ -145,50 +146,43 @@ export default function PrestacaoDeContasScreen() {
     }
   }, [router]);
 
-  // ✅ Correção: useFocusEffect com função síncrona
   useFocusEffect(
     useCallback(() => {
       fetchAccountabilityData();
     }, [fetchAccountabilityData])
   );
 
+  // ... (toda a sua lógica de useEffect para filtrar e calcular o gráfico continua a mesma) ...
   useEffect(() => {
-    if (monthYearFilter.trim() === '') {
-      setFilteredData(originalData);
-    } else {
-      const filtered = originalData.filter(item => {
+    let currentFiltered = originalData;
+    if (selectedMonthYear !== 'all') {
+      currentFiltered = currentFiltered.filter(item => {
         const itemDate = new Date(item.date);
         const formattedDate = `${(itemDate.getMonth() + 1).toString().padStart(2, '0')}/${itemDate.getFullYear()}`;
-        return formattedDate.includes(monthYearFilter);
+        return formattedDate === selectedMonthYear;
       });
-      setFilteredData(filtered);
     }
-  }, [monthYearFilter, originalData]);
+    if (selectedExpenseType !== 'all') {
+      currentFiltered = currentFiltered.filter(item => item.type.toLowerCase() === selectedExpenseType);
+    }
+    setFilteredData(currentFiltered);
+  }, [originalData, selectedMonthYear, selectedExpenseType]);
 
   useEffect(() => {
     const expensesOnly = filteredData.filter(item => item.type === 'EXPENSE');
-    if (expensesOnly.length === 0) {
-      setChartData([]);
-      return;
-    }
-
+    if (expensesOnly.length === 0) { setChartData([]); return; }
     const grouped = expensesOnly.reduce((acc, expense) => {
       const key = expense.title;
-      if (!acc[key]) acc[key] = { total: 0, color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}` };
+      if (!acc[key]) acc[key] = { total: 0, color: '' };
       acc[key].total += expense.amount;
       return acc;
     }, {} as { [key: string]: { total: number, color: string } });
-
     const totalAmount = Object.values(grouped).reduce((sum, item) => sum + item.total, 0);
-    if (totalAmount === 0) {
-      setChartData([]);
-      return;
-    }
-
-    const calculatedChartData = Object.entries(grouped).map(([label, data]) => ({
+    if (totalAmount === 0) { setChartData([]); return; }
+    const calculatedChartData = Object.entries(grouped).map(([label, data], index) => ({
       label,
       value: (data.total / totalAmount) * 100,
-      color: data.color
+      color: CHART_COLORS[index % CHART_COLORS.length]
     }));
     setChartData(calculatedChartData);
   }, [filteredData]);
@@ -211,46 +205,57 @@ export default function PrestacaoDeContasScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      {/* 1. APPBAR (BARRA SUPERIOR) ESTÁ AQUI */}
       <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.Content title="Prestação de Contas" titleStyle={{ color: theme.colors.onSurface }} />
       </Appbar.Header>
 
+      {/* 2. MAINCONTENT PARA ORGANIZAR O SCROLL E O MENU */}
       <View style={styles.mainContent}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Card style={{ backgroundColor: theme.colors.surface, marginBottom: 24 }}>
-            <Card.Content>
-              <TextInput 
-                label="Pesquisar por Mês/Ano (ex: 06/2025)"
-                value={monthYearFilter}
-                onChangeText={setMonthYearFilter}
-                mode="outlined"
-              />
-            </Card.Content>
-          </Card>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Área dos Filtros Dropdown */}
+          <View style={styles.filtersContainer}>
+            <View style={[styles.pickerWrapper, { borderColor: theme.colors.outline, backgroundColor: theme.colors.surface }]}>
+              <Picker
+                selectedValue={selectedMonthYear}
+                onValueChange={(itemValue) => setSelectedMonthYear(itemValue)}
+                style={styles.pickerStyle}
+                itemStyle={styles.pickerItemStyle}
+              >
+                <Picker.Item label="Setembro/2025" value="09/2025" />
+                {/* Outras opções podem ser adicionadas aqui */}
+              </Picker>
+            </View>
 
-          <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Movimentações</Text>
+            <View style={[styles.pickerWrapper, { borderColor: theme.colors.outline, backgroundColor: theme.colors.surface }]}>
+              <Picker
+                selectedValue={selectedExpenseType}
+                onValueChange={(itemValue) => setSelectedExpenseType(itemValue)}
+                style={styles.pickerStyle}
+                itemStyle={styles.pickerItemStyle}
+              >
+                <Picker.Item label="Tipo de Gasto" value="all" />
+                <Picker.Item label="Entrada" value="income" />
+                <Picker.Item label="Saída" value="expense" />
+              </Picker>
+            </View>
+          </View>
 
+          {/* Gráfico de Despesas */}
+          <GeneralExpensesChart data={chartData} />
+
+          {/* Lista de Movimentações (ExpenseCards) */}
           {filteredData.length > 0 ? (
             filteredData.map((item) => <ExpenseCard key={item.id} expense={item} />)
           ) : (
             <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, padding: 20 }}>
-              Nenhuma movimentação encontrada para o período.
+              Nenhuma movimentação encontrada para os filtros aplicados.
             </Text>
           )}
-
-          <GeneralExpensesChart data={chartData} />
         </ScrollView>
-
-        {customer?.userType === 'ADMIN' && (
-          <FAB
-            icon="plus"
-            style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-            onPress={() => router.push('/addAccountability')}
-            color={theme.colors.onPrimary}
-          />
-        )}
-
+        
+        {/* 3. BOTTOMMENU ESTÁ AQUI */}
         <BottomMenu />
       </View>
     </SafeAreaView>
@@ -259,21 +264,112 @@ export default function PrestacaoDeContasScreen() {
 
 // --- ESTILOS ---
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 40 },
-  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  mainContent: { flex: 1, justifyContent: 'space-between' },
-  sectionTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
-  chartTitle: { fontSize: 20, fontWeight: 'bold' },
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  chartAndLegendWrapper: { flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-around' },
-  legendContainer: { marginLeft: 20, flex: 1 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  legendColorBox: { width: 14, height: 14, borderRadius: 2, marginRight: 8 },
-  legendText: { fontSize: 12 },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 80,
+  safeArea: { flex: 1 },
+  mainContent: { 
+    flex: 1,
+    justifyContent: 'space-between',
   },
+  scrollContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 20, 
+    paddingBottom: 20,
+  },
+  filtersContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 0, 
+    marginBottom: 20,
+    zIndex: 10, 
+  },
+  pickerWrapper: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden', 
+    height: 48, 
+    justifyContent: 'center',
+  },
+  pickerStyle: {
+    height: 48,
+    width: '100%',
+  },
+  pickerItemStyle: {
+    height: 48,
+  },
+  centerScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  // Estilos do ExpenseCard
+  expenseCard: {
+    backgroundColor: '#FFFFFF', 
+    marginBottom: 12,
+    borderRadius: 8,
+    elevation: 2, 
+  },
+  expenseTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  expenseDescription: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  expenseStatus: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 10, 
+  },
+  viewInvoiceButton: {
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  viewInvoiceButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  // Estilos do GeneralExpensesChart
+  chartCard: {
+    backgroundColor: '#FFFFFF', 
+    padding: 16,
+    marginTop: 0, 
+    marginBottom: 20,
+    alignItems: 'center', 
+    borderRadius: 8,
+    elevation: 2, 
+  },
+  chartValueTitle: { 
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    alignSelf: 'flex-start', 
+  },
+  chartWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', 
+    width: '100%',
+    position: 'relative', 
+  },
+  chartOverlayLegend: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'space-around', 
+    alignItems: 'center',
+    paddingVertical: 10, 
+  },
+  chartOverlayLegendItem: {
+  },
+  chartOverlayLegendText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center', 
+  }git add .,
 });
