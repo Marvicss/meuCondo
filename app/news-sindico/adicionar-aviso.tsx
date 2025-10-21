@@ -1,0 +1,222 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+
+const AdicionarAvisoScreen = () => {
+  const router = useRouter();
+  
+
+  const [titulo, setTitulo] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [categoria, setCategoria] = useState<string | null>(null);
+
+
+  const [date, setDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+  const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowPicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setDate(selectedDate);
+    }
+  };
+
+  const showMode = (currentMode: 'date' | 'time') => {
+    setShowPicker(true);
+    setPickerMode(currentMode);
+  };
+
+  const handlePublicar = async () => {
+    
+    if (!titulo.trim() || !descricao.trim() || !categoria) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Sessão Expirada", "Por favor, faça o login novamente para continuar.");
+        router.replace('/login');
+        return;
+      }
+      
+      const novoAviso = {
+        type: categoria, 
+        message: descricao,
+        title: titulo, 
+      };
+
+      console.log('Enviando para o backend:', novoAviso);
+
+      const response = await fetch('https://meu-condo.onrender.com/news/', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(novoAviso),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Falha ao publicar o aviso.');
+      }
+
+      Alert.alert('Sucesso!', 'Seu aviso foi publicado.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert('Erro', error.message || 'Não foi possível publicar o aviso.');
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Text style={styles.label}>Título</Text>
+          <TextInput
+            style={styles.input}
+            value={titulo}
+            onChangeText={setTitulo}
+            placeholder="Ex: Manutenção do Elevador"
+            placeholderTextColor="#999"
+          />
+
+          <Text style={styles.label}>Descrição</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={descricao}
+            onChangeText={setDescricao}
+            placeholder="Descreva os detalhes do aviso aqui..."
+            placeholderTextColor="#999"
+            multiline
+            numberOfLines={4}
+          />
+
+          <Text style={styles.label}>Data</Text>
+          <View style={styles.dateRow}>
+            <TouchableOpacity style={styles.datePickerButton} onPress={() => showMode('date')}>
+              <Text style={styles.datePickerText}>{date.toLocaleDateString('pt-BR')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.datePickerButton} onPress={() => showMode('time')}>
+              <Text style={styles.datePickerText}>{date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {showPicker && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={date}
+              mode={pickerMode}
+              is24Hour={true}
+              display="default"
+              onChange={onChangeDate}
+            />
+          )}
+
+          <Text style={styles.label}>Categoria</Text>
+          {/* 2. Substituímos o RNPickerSelect pelo Picker dentro de uma View para estilização */}
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={categoria}
+              onValueChange={(itemValue) => setCategoria(itemValue)}
+            >
+              <Picker.Item label="Selecione uma categoria" value={null} />
+              <Picker.Item label="Urgente" value="urgente" />
+              <Picker.Item label="Manutenção" value="manutencao" />
+              <Picker.Item label="Eventos" value="eventos" />
+              <Picker.Item label="Geral" value="geral" />
+            </Picker>
+          </View>
+
+          <TouchableOpacity style={styles.publishButton} onPress={handlePublicar}>
+            <Text style={styles.publishButtonText}>Publicar</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+// --- Estilos ---
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#F4F5F7' },
+  container: { flexGrow: 1, padding: 20, backgroundColor: '#F4F5F7' },
+  label: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8, marginTop: 16 },
+  input: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDE3E9',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  datePickerButton: {
+    flex: 1,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDE3E9',
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginRight: 10, // Adicionado para espaçamento
+  },
+  datePickerText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  publishButton: {
+    backgroundColor: '#0095FF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  publishButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+
+  pickerContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDE3E9',
+    justifyContent: 'center', 
+    height: 50, 
+  },
+});
+export default AdicionarAvisoScreen;
