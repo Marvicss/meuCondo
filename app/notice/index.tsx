@@ -1,4 +1,5 @@
 import BottomMenu from '@/components/BottomMenu'; // Importamos o menu
+import CustomHeader from '@/components/CustomHeader';
 import { API_URL } from '@/constants/envs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -87,9 +88,9 @@ export default function QuadroAvisos() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.Content title="Quadro de Avisos" titleStyle={{ color: theme.colors.onSurface }}/>
-      </Appbar.Header>
+      <CustomHeader mode="center-aligned">
+  <Appbar.Content title="Quadro de Avisos" titleStyle={{ color: theme.colors.onSurface }}/>
+    </CustomHeader>
 
       {/* Usamos uma View para englobar o ScrollView e o BottomMenu */}
       <View style={styles.mainContent}>

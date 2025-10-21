@@ -1,4 +1,5 @@
 import BottomMenu from '@/components/BottomMenu';
+import CustomHeader from '@/components/CustomHeader';
 import { API_URL } from '@/constants/envs';
 import { MaterialCommunityIcons } from '@expo/vector-icons'; // Usaremos para o ícone do carro
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -64,9 +65,9 @@ export default function ParkingLotPage() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.Content title="Vagas do Condomínio" titleStyle={{ color: theme.colors.onSurface }} />
-      </Appbar.Header>
+      <CustomHeader mode="center-aligned">
+  <Appbar.Content title="Vagas do Condomínio" titleStyle={{ color: theme.colors.onSurface }} />
+</CustomHeader>
 
       <View style={styles.mainContent}>
         <ScrollView contentContainerStyle={styles.container}>
