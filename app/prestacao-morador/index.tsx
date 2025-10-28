@@ -11,7 +11,8 @@ import { Picker } from '@react-native-picker/picker'; // Importa o Picker
 import { Appbar, Button, Card, Text, useTheme } from 'react-native-paper';
 import PieChart from 'react-native-pie-chart';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BottomMenu from '../../components/BottomMenu'; // Importa o BottomMenu
+import BottomMenu from '../../components/BottomMenu';
+import CustomHeader from '../../components/CustomHeader';
 
 // --- DEFINIÇÃO DE TIPOS ---
 interface Expense { id: string; date: string; amount: number; title: string; type: 'EXPENSE' | 'INCOME'; }
@@ -206,10 +207,9 @@ export default function PrestacaoDeContasScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      {/* 1. APPBAR (BARRA SUPERIOR) ESTÁ AQUI */}
-      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
+      <CustomHeader mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.Content title="Prestação de Contas" titleStyle={{ color: theme.colors.onSurface }} />
-      </Appbar.Header>
+      </CustomHeader>
 
       {/* 2. MAINCONTENT PARA ORGANIZAR O SCROLL E O MENU */}
       <View style={styles.mainContent}>

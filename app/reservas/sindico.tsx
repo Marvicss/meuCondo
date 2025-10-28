@@ -1,3 +1,4 @@
+import CustomHeader from '@/components/CustomHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
@@ -267,11 +268,11 @@ export default function SindicoScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <CustomHeader mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.Content title="Gerenciar Espaços" titleStyle={{ color: theme.colors.onSurface }}/>
         <Appbar.Action icon="plus" onPress={() => setCreateVisible(true)} />
-      </Appbar.Header>
+      </CustomHeader>
       <Portal>
         <Dialog visible={createVisible} onDismiss={() => setCreateVisible(false)}>
           <Dialog.Title>Cadastrar Espaço</Dialog.Title>

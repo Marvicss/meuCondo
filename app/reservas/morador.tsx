@@ -1,26 +1,27 @@
 import BottomMenu from '@/components/BottomMenu';
+import CustomHeader from '@/components/CustomHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Appbar,
-  Button,
-  Card,
-  Chip,
-  Text,
-  TextInput,
-  useTheme,
+    Appbar,
+    Button,
+    Card,
+    Chip,
+    Text,
+    TextInput,
+    useTheme,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
@@ -158,9 +159,9 @@ export default function MoradorScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header mode="center-aligned">
-        <Appbar.Content title="Reservar Espaços" />
-      </Appbar.Header>
+      <CustomHeader mode="center-aligned">
+      <Appbar.Content title="Reservar Espaços" />
+      </CustomHeader>
 
       <View style={styles.mainContent}>
         <ScrollView contentContainerStyle={styles.container}>
