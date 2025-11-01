@@ -171,6 +171,7 @@ export default function OcorrenciasScreen() {
   const [ocorrencias, setOcorrencias] = useState<OcorrenciaComAutor[]>([]); // <- Usa o novo tipo
   const [loading, setLoading] = useState<boolean>(true);
   const [isPosting, setIsPosting] = useState<boolean>(false);
+  const [userType, setUserType] = useState<string>('USER'); // Adicione um estado para controlar o tipo de usuário
   const { colors } = useTheme();
   const router = useRouter();
 
@@ -183,10 +184,19 @@ export default function OcorrenciasScreen() {
         router.replace('/login');
         return;
       }
+
+      // Decodifica o token para pegar o userType
+      const decodedToken = jwtDecode<DecodedToken>(token);
+      setUserType(decodedToken.userType);
+
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      // Etapa 1: Buscar a lista de ocorrências
-      const response = await fetch(`${API_URL}/occurrences/`, { headers });
+      // Usa rota diferente baseada no tipo de usuário
+      const endpoint = decodedToken.userType === 'ADMIN' 
+        ? `${API_URL}/occurrences/`        // ADMIN vê todas
+        : `${API_URL}/occurrences/mines`;  // USER vê apenas suas
+
+      const response = await fetch(endpoint, { headers });
       if (!response.ok) throw new Error('Falha ao buscar ocorrências.');
       const data: Ocorrencia[] = await response.json();
 
@@ -332,7 +342,10 @@ export default function OcorrenciasScreen() {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <>
-              <Text style={styles.headerTitle}>Ocorrências</Text>
+              {/* Atualize o título do header para ser dinâmico */}
+              <Text style={styles.headerTitle}>
+                {userType === 'ADMIN' ? 'Todas as Ocorrências' : 'Minhas Ocorrências'}
+              </Text>
               <NovaOcorrenciaInput onPublicar={handlePublicar} isPosting={isPosting} />
             </>
           }

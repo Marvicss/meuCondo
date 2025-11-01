@@ -92,10 +92,15 @@ const Home = () => {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {/* Topo: Usuário */}
-        <View style={styles.userRow}>
-          <Feather name="user" size={28} color={theme.colors.onSurface} />
-          <Text style={[styles.userName, { color: theme.colors.onSurface }]}>{user?.fullName || 'Bem-vindo(a)!'}</Text>
+        {/* Topo: Menu hamburger */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => router.push('/profile' as any)}
+            accessibilityLabel="Abrir perfil"
+          >
+            <Feather name="menu" size={28} color={theme.colors.onSurface} />
+          </TouchableOpacity>
         </View>
 
         {/* Aviso em destaque */}
@@ -152,16 +157,15 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  userRow: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 18,
-    gap: 8,
+    justifyContent: 'flex-start',
   },
-  userName: {
-    fontWeight: 'bold',
-    fontSize: 20,
-    color: '#222',
+  menuButton: {
+    padding: 8,
+    borderRadius: 8,
   },
   newsCard: {
     backgroundColor: '#0099FF',

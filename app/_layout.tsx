@@ -30,7 +30,7 @@ export default function RootLayout() {
       <Portal.Host>
   
         <Stack>
-
+          <Stack.Screen name="profile/index" options={{ headerShown: false }} />
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="login/index" options={{ headerShown: false }} />
           <Stack.Screen name="register/index" options={{ headerShown: false }} />
