@@ -32,7 +32,7 @@ type Ocorrencia = {
   type: string;
   status: string;
   userId: string;
-  criticality: string;
+  criticality: string; // <- Campo que será usado
   condominiumId: string;
   createdAt: string;
   updatedAt: string;
@@ -93,10 +93,43 @@ const formatTimeAgo = (dateString: string): string => {
   return `há poucos segundos`;
 };
 
+// --- ALTERAÇÃO 1: FUNÇÕES PARA COR DA CRITICIDADE ---
+const CRITICALITY_COLORS = {
+  alto: '#E53935',    // Vermelho
+  medio: '#FFA726',   // Laranja
+  baixo: '#66BB6A',   // Verde
+  default: '#E0E0E0', // Cinza claro
+};
+
+const getCriticalityColor = (criticality: string): string => {
+  // Normaliza a string para minúsculas
+  const key = criticality?.toLowerCase() as keyof typeof CRITICALITY_COLORS;
+  // Retorna a cor correspondente ou a cor padrão
+  return CRITICALITY_COLORS[key] || CRITICALITY_COLORS.default;
+};
+// --- FIM DA ALTERAÇÃO 1 ---
+
+
 // --- 2. COMPONENTE CARD ATUALIZADO PARA DADOS DINÂMICOS ---
 const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
+  
+  // --- ALTERAÇÃO 2: APLICAR COR DA BARRA ---
+  // 1. Obtém a cor com base na criticidade
+  const barColor = getCriticalityColor(item.criticality);
+
+  // 2. Cria o estilo dinâmico para o card
+  const cardStyle = [
+    styles.card, // Mantém todos os estilos originais
+    {
+      borderLeftWidth: 6,       // Define a largura da barra lateral
+      borderLeftColor: barColor,  // Define a cor dinâmica da barra
+    },
+  ];
+  // --- FIM DA ALTERAÇÃO 2 ---
+
   return (
-    <Card style={styles.card}>
+    // 3. Aplica o novo array de estilos ao Card
+    <Card style={cardStyle}> 
       <Card.Title
         title={`${item.authorName} apt ${item.apartmentNumber}`} // <- Título agora é dinâmico
         subtitle={formatTimeAgo(item.createdAt)}
@@ -295,6 +328,10 @@ export default function OcorrenciasScreen() {
         body: JSON.stringify(body),
       });
 
+      console.log('Occurrence Response Status:', occurrenceResponse.status);
+      const responseParsed = await occurrenceResponse.json();
+      console.log('Occurrence Response Body:', responseParsed);
+
       if (!occurrenceResponse.ok) {
         throw new Error('Falha ao criar a ocorrência.');
       }
@@ -430,6 +467,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    // A borda será adicionada dinamicamente no componente
   },
   avatar: {
     width: 40,
