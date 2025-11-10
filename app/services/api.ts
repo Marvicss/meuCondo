@@ -1,10 +1,14 @@
 // services/api.ts
 
-import { API_URL } from '@/constants/envs';
+import { API_URL, API_URL_DEV } from '@/constants/envs';
 import axios from 'axios';
 
 const api = axios.create({
   baseURL: `${API_URL}`, // Sua URL base
+});
+
+const apiDev = axios.create({
+  baseURL: `${API_URL_DEV}`, // Sua URL base
 });
 
 // Futuramente, você pode adicionar interceptors para injetar o token de autenticação
