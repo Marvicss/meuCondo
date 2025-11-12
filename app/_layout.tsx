@@ -1,4 +1,3 @@
-
 import { Stack } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
@@ -29,10 +28,9 @@ export default function RootLayout() {
     <PaperProvider theme={temaDoApp}>
       <Portal.Host>
   
-        <Stack>
+        <Stack initialRouteName="index">
           <Stack.Screen name="profile/index" options={{ headerShown: false }} />
           <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="login/index" options={{ headerShown: false }} />
           <Stack.Screen name="register/index" options={{ headerShown: false }} />
           <Stack.Screen name="home/index" options={{ headerShown: false }} />
           <Stack.Screen name="reservas/morador" options={{ headerShown: false }} />

@@ -1,13 +1,13 @@
 import BottomMenu from '@/components/BottomMenu';
-import { API_URL } from '@/constants/envs';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Button, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import api from '../services/api';
 
 // --- DEFINIÇÃO DE TIPOS (sem mudanças) ---
 type DecodedToken = { userId: string; email: string; userType: string; };
@@ -38,17 +38,16 @@ const Home = () => {
 
           const decoded: DecodedToken = jwtDecode(token);
 
-          // Usando Promise.all para buscar tudo em paralelo
+          // Buscar dados via cliente axios com interceptor de token
           const [userResponse, newsResponse, partyRoomResponse] = await Promise.all([
-            fetch(`${API_URL}/users/${decoded.userId}`, { headers: { Authorization: `Bearer ${token}` } }),
-            fetch(`${API_URL}/news/`, { headers: { Authorization: `Bearer ${token}` } }),
-            fetch(`${API_URL}/partyrooms/`, { headers: { Authorization: `Bearer ${token}` } })
+            api.get(`/users/${decoded.userId}`),
+            api.get('/news/'),
+            api.get('/partyrooms/'),
           ]);
 
-          // Processa as respostas
-          const userData = userResponse.ok ? await userResponse.json() : null;
-          const newsData = newsResponse.ok ? await newsResponse.json() : [];
-          const partyRoomData = partyRoomResponse.ok ? await partyRoomResponse.json() : [];
+          const userData = userResponse.data ?? null;
+          const newsData = newsResponse.data ?? [];
+          const partyRoomData = partyRoomResponse.data ?? [];
           
           setUser(userData);
           setPartyRooms(partyRoomData);
@@ -143,6 +142,14 @@ const Home = () => {
             <Text style={[styles.votacaoDescricao, { color: theme.colors.onSurface }]}>{v.descricao}</Text>
           </View>
         ))}
+
+        <Button
+          mode="contained"
+          onPress={() => router.push('/reservas/sindico' as any)}
+          style={{ marginTop: 16 }}
+        >
+          Reservas (Síndico)
+        </Button>
 
       </ScrollView>
       <BottomMenu />

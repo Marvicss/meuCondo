@@ -370,6 +370,6 @@ const styles = StyleSheet.create({
   chartOverlayLegendText: {
     fontSize: 12,
     fontWeight: 'bold',
-    textAlign: 'center', 
-  }git add .,
+    textAlign: 'center',
+  }
 });

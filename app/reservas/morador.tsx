@@ -54,6 +54,7 @@ export default function MoradorScreen() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [userInfo, setUserInfo] = useState<DecodedToken | null>(null);
+  const [filter, setFilter] = useState<'todos' | 'salao' | 'churrasqueira'>('todos');
 
   useFocusEffect(
     useCallback(() => {
@@ -71,8 +72,8 @@ export default function MoradorScreen() {
           setUserInfo(decoded);
 
           const response = await api.get('/partyrooms/', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          // headers removidos: usamos o interceptor para anexar o token
+           });
           setPartyRooms(response.data);
         } catch (error) {
           console.error("Erro na tela Morador:", error);
@@ -115,8 +116,7 @@ export default function MoradorScreen() {
               const newDescription = `${room.description?.split('[RESERVADO_EM:')[0].trim()} [RESERVADO_EM:${formattedDate}][USER_ID:${userId}]`;
               await api.put(
                 `/partyrooms/${room.id}`,
-                { ...room, available: false, description: newDescription },
-                { headers: { Authorization: `Bearer ${token}` } }
+                { ...room, available: false, description: newDescription }
               );
               Alert.alert("Sucesso!", "Salão reservado com sucesso.");
               const updatedRooms = partyRooms.map(r =>
@@ -136,6 +136,17 @@ export default function MoradorScreen() {
       ]
     );
   };
+
+ const roomMatchesFilter = (room: PartyRoom) => {
+   const text = `${room.name} ${room.description}`.toLowerCase();
+   if (filter === 'salao') {
+     return text.includes('salão') || text.includes('salao');
+   }
+   if (filter === 'churrasqueira') {
+     return text.includes('churrasqueira');
+   }
+   return true;
+ };
 
   if (loading) {
     return (
@@ -167,6 +178,11 @@ export default function MoradorScreen() {
                   />
                 </View>
               </Pressable>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <Chip selected={filter==='todos'} onPress={() => setFilter('todos')}>Todos</Chip>
+                <Chip selected={filter==='salao'} onPress={() => setFilter('salao')}>Salão</Chip>
+                <Chip selected={filter==='churrasqueira'} onPress={() => setFilter('churrasqueira')}>Churrasqueira</Chip>
+              </View>
             </Card.Content>
           </Card>
 
@@ -179,7 +195,20 @@ export default function MoradorScreen() {
             />
           )}
 
-          {partyRooms.map((room) => {
+          {partyRooms.filter(roomMatchesFilter).length === 0 && (
+            <Card style={{ backgroundColor: theme.colors.surface, marginTop: 16 }}>
+              <Card.Content>
+                <Text variant='bodyLarge' style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>
+                  Nenhum espaço encontrado
+                </Text>
+                <Text variant='bodyMedium' style={{ color: theme.colors.onSurfaceVariant }}>
+                  Verifique se há espaços cadastrados no condomínio ou tente novamente mais tarde.
+                </Text>
+              </Card.Content>
+            </Card>
+          )}
+
+          {partyRooms.filter(roomMatchesFilter).map((room) => {
             const reservedDate = getReservationDate(room.description || '');
             const selectedDateString = date.toISOString().split('T')[0];
             const isAvailableOnSelectedDate = room.available || (reservedDate !== selectedDateString);
