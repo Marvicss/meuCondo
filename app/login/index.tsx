@@ -15,11 +15,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLogin() {
     try {
@@ -69,14 +71,28 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
-            placeholder="Senha"
-            secureTextEntry
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            value={password}
-            onChangeText={setPassword}
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              placeholder="Senha"
+              secureTextEntry={!showPassword}
+              style={[styles.input, styles.passwordInput]}
+              placeholderTextColor="#e0e0e0"
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(v => !v)}
+              style={styles.eyeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Mostrar/ocultar senha"
+            >
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={22}
+                color="#ffffff"
+              />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
@@ -102,7 +118,7 @@ export default function LoginScreen() {
   );
 }
 
-// Estilos originais do seu arquivo
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -176,5 +192,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 15,
     opacity: 0.8,
+  },
+  inputWrapper: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 40,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 0,
+    top: 6,
+    padding: 6,
   },
 });

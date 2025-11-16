@@ -1,25 +1,27 @@
 // app/login/sindico.tsx
 
 import { API_URL } from "@/constants/envs";
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function LoginSindicoScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleLoginSindico() {
     try {
@@ -65,14 +67,24 @@ export default function LoginSindicoScreen() {
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
-            placeholder="Senha"
-            secureTextEntry
-            style={styles.input}
-            placeholderTextColor="#e0e0e0"
-            value={password}
-            onChangeText={setPassword}
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              placeholder="Senha"
+              secureTextEntry={!showPassword}
+              style={[styles.input, styles.passwordInput]}
+              placeholderTextColor="#e0e0e0"
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(v => !v)}
+              style={styles.eyeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Mostrar/ocultar senha"
+            >
+              <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={styles.button} onPress={handleLoginSindico}>
             <Text style={styles.buttonText}>Entrar como Síndico</Text>
@@ -88,7 +100,7 @@ export default function LoginSindicoScreen() {
   );
 }
 
-// ===== ESTILOS COM A COR DO "VOLTAR" AJUSTADA =====
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -128,6 +140,18 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: 16,
   },
+  inputWrapper: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 40,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 0,
+    top: 6,
+    padding: 6,
+  },
   button: {
     backgroundColor: "#fff",
     paddingVertical: 14,
@@ -145,7 +169,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     textAlign: "center",
-    fontSize: 15, // Ajustado para ficar igual ao "Sou Síndico"
-    opacity: 0.8, // <-- AQUI ESTÁ A MUDANÇA
+    fontSize: 15, 
+    opacity: 0.8, 
   },
 });
