@@ -1,43 +1,86 @@
-
+import { Feather, Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { usePathname, useRouter } from 'expo-router';
-import React from 'react';
+import { jwtDecode } from 'jwt-decode';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ICON_COLOR_INACTIVE = '#A0A0A0';
-const ICON_COLOR_ACTIVE = '#FFFFFF'; 
-const ICON_BG_ACTIVE = '#0095FF';   
+const ICON_COLOR_ACTIVE = '#FFFFFF';
+const ICON_BG_ACTIVE = '#0095FF';
+
+type Role = 'ADMIN' | 'USER';
+
+interface DecodedToken {
+  userId: string;
+  email: string;
+  userType: Role;
+  iat: number;
+  exp: number;
+}
+
+const MORADOR_ROUTES = {
+  home: '/home',
+  cash: '/prestacao-morador',
+  notice: '/notice',
+  reservas: '/reservas/morador',
+  parking: '/parking',
+};
+
+const ADMIN_ROUTES = {
+  home: '/home',
+  cash: '/prestacao-morador',
+  notice: '/news-sindico',
+  reservas: '/reservas/morador',
+  parking: '/parking',
+};
 
 const BottomMenu: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const [role, setRole] = useState<Role>('USER');
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return;
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded?.userType === 'ADMIN' || decoded?.userType === 'USER') {
+          setRole(decoded.userType);
+        } else {
+          setRole('USER');
+        }
+      } catch {
+        setRole('USER');
+      }
+    })();
+  }, []);
+
+  const routes = role === 'ADMIN' ? ADMIN_ROUTES : MORADOR_ROUTES;
 
   const menuItems = [
-    { route: '/home', icon: <Feather name="home" size={28} />, key: 'home' },
-    { route: '/prestacao-morador', icon: <Ionicons name="cash-outline" size={28} />, key: 'cash' },
-    { route: '/notice', icon: <Feather name="bell" size={28} />, key: 'notice' },
-    { route: '/reservas/morador', icon: <Ionicons name="checkmark-done-outline" size={28} />, key: 'reservas' },
-    { route: '/parking', icon: <Ionicons name="calendar-outline" size={28} />, key: 'parking' },
-  ];
+    { key: 'home', icon: <Feather name="home" size={28} /> },
+    { key: 'cash', icon: <Ionicons name="cash-outline" size={28} /> },
+    { key: 'notice', icon: <Feather name="bell" size={28} /> },
+    { key: 'reservas', icon: <Ionicons name="checkmark-done-outline" size={28} /> },
+    { key: 'parking', icon: <Ionicons name="calendar-outline" size={28} /> },
+  ] as const;
 
- 
-  const getActiveIconName = (name: string) => {
-    return name.replace('-outline', '');
-  };
+  const getActiveIconName = (name: string) => name.replace('-outline', '');
 
   return (
     <View style={styles.container}>
       {menuItems.map(item => {
-        const isActive = pathname === item.route;
-        
+        const route = routes[item.key as keyof typeof routes];
+        const isActive = pathname === route;
+
         return (
           <TouchableOpacity
             key={item.key}
-            onPress={() => router.push(item.route as any)}
+            onPress={() => router.push(route as any)}
             style={styles.tabButton}
           >
-            {/* 3. Uma View extra cria o círculo de fundo azul apenas para o ícone ativo */}
             <View style={isActive ? styles.activeIconContainer : null}>
               {React.cloneElement(item.icon, {
                 color: isActive ? ICON_COLOR_ACTIVE : ICON_COLOR_INACTIVE,
@@ -51,7 +94,6 @@ const BottomMenu: React.FC = () => {
   );
 };
 
-
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
@@ -64,7 +106,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     height: 70,
     borderRadius: 20,
-    // Sombra
     elevation: 10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -79,7 +120,7 @@ const styles = StyleSheet.create({
   activeIconContainer: {
     backgroundColor: ICON_BG_ACTIVE,
     padding: 12,
-    borderRadius: 30, 
+    borderRadius: 30,
   },
 });
 
