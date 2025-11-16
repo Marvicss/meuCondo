@@ -8,23 +8,23 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Keyboard,
   ListRenderItemInfo,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {
   Button,
   Card,
+  Menu,
   Text,
   TextInput,
-  useTheme,
+  useTheme
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-
-
-// --- 1. TIPOS DE DADOS ATUALIZADOS ---
 type Ocorrencia = {
   id: string;
   title: string;
@@ -32,19 +32,18 @@ type Ocorrencia = {
   type: string;
   status: string;
   userId: string;
-  criticality: string; // <- Campo que será usado
+  criticality: string;
   condominiumId: string;
   createdAt: string;
   updatedAt: string;
 };
 
-// Objeto "enriquecido" que será usado na lista
 type OcorrenciaComAutor = Ocorrencia & {
   authorName: string;
   apartmentNumber: string | number;
+  authorAvatarUrl?: string;
 };
 
-// Tipos para as respostas das chamadas GET (mais completos)
 type UserData = {
   id: string;
   fullName: string;
@@ -58,7 +57,7 @@ type ApartmentData = {
 };
 
 type OcorrenciaCardProps = {
-  item: OcorrenciaComAutor; // <- Usará o tipo enriquecido
+  item: OcorrenciaComAutor;
 };
 
 interface DecodedToken {
@@ -70,11 +69,11 @@ interface DecodedToken {
 }
 
 type NovaOcorrenciaInputProps = {
-  onPublicar: (data: { title: string; description: string }) => Promise<void>;
+  onPublicar: (data: { title: string; description: string; type: string }) => Promise<void>;
   isPosting: boolean;
+  avatarUrl?: string;
 };
 
-// --- FUNÇÃO DE TEMPO RELATIVO ---
 const formatTimeAgo = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
@@ -93,49 +92,50 @@ const formatTimeAgo = (dateString: string): string => {
   return `há poucos segundos`;
 };
 
-// --- ALTERAÇÃO 1: FUNÇÕES PARA COR DA CRITICIDADE ---
 const CRITICALITY_COLORS = {
-  alto: '#E53935',    // Vermelho
-  medio: '#FFA726',   // Laranja
-  baixo: '#66BB6A',   // Verde
-  default: '#E0E0E0', // Cinza claro
+  alto: '#E53935',
+  medio: '#FFA726',
+  baixo: '#66BB6A',
+  default: '#E0E0E0',
 };
 
 const getCriticalityColor = (criticality: string): string => {
-  // Normaliza a string para minúsculas
   const key = criticality?.toLowerCase() as keyof typeof CRITICALITY_COLORS;
-  // Retorna a cor correspondente ou a cor padrão
   return CRITICALITY_COLORS[key] || CRITICALITY_COLORS.default;
 };
-// --- FIM DA ALTERAÇÃO 1 ---
 
-
-// --- 2. COMPONENTE CARD ATUALIZADO PARA DADOS DINÂMICOS ---
 const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
-  
-  // --- ALTERAÇÃO 2: APLICAR COR DA BARRA ---
-  // 1. Obtém a cor com base na criticidade
   const barColor = getCriticalityColor(item.criticality);
-
-  // 2. Cria o estilo dinâmico para o card
   const cardStyle = [
-    styles.card, // Mantém todos os estilos originais
+    styles.card,
     {
-      borderLeftWidth: 6,       // Define a largura da barra lateral
-      borderLeftColor: barColor,  // Define a cor dinâmica da barra
+      borderLeftWidth: 6,
+      borderLeftColor: barColor,
     },
   ];
-  // --- FIM DA ALTERAÇÃO 2 ---
 
   return (
-    // 3. Aplica o novo array de estilos ao Card
-    <Card style={cardStyle}> 
+    <Card style={cardStyle}>
       <Card.Title
-        title={`${item.authorName} apt ${item.apartmentNumber}`} // <- Título agora é dinâmico
+        title={
+          <View style={{ flexDirection: 'column' }}>
+            <Text style={styles.autor}>{item.authorName}</Text>
+            <Text style={styles.apartment}>{`apt ${item.apartmentNumber}`}</Text>
+          </View>
+        }
         subtitle={formatTimeAgo(item.createdAt)}
-        titleStyle={styles.autor}
         subtitleStyle={styles.subtitle}
-        left={(props) => <View {...props} style={styles.avatar} />}
+        left={(props) =>
+          item.authorAvatarUrl ? (
+            <Image
+              {...props}
+              source={{ uri: item.authorAvatarUrl }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <View {...props} style={styles.avatar} />
+          )
+        }
       />
       <Card.Content>
         <Text style={styles.cardTitle}>{item.title}</Text>
@@ -145,16 +145,26 @@ const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
   );
 };
 
-// --- COMPONENTE INPUT (Sem alterações) ---
-const NovaOcorrenciaInput: React.FC<NovaOcorrenciaInputProps> = ({ onPublicar, isPosting }) => {
+const NovaOcorrenciaInput: React.FC<NovaOcorrenciaInputProps> = ({ onPublicar, isPosting, avatarUrl }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [occurrenceType, setOccurrenceType] = useState<'SUGGESTION'|'COMPLAINT'|'REQUEST'|'OTHERS'>('OTHERS');
+  const [menuVisible, setMenuVisible] = useState(false);
 
+  const occurrenceOptions = [
+    { value: 'SUGGESTION', label: 'Sugestão' },
+    { value: 'COMPLAINT', label: 'Reclamação' },
+    { value: 'REQUEST', label: 'Pedido' },
+    { value: 'OTHERS', label: 'Outros' },
+  ];
+  const selectedLabel = occurrenceOptions.find(o => o.value === occurrenceType)?.label || 'Selecione o tipo';
+  
   const handlePublicar = (): void => {
     if (title.trim() && description.trim() && !isPosting) {
-      onPublicar({ title, description }).then(() => {
+      onPublicar({ title, description, type: occurrenceType }).then(() => {
         setTitle('');
         setDescription('');
+        setOccurrenceType('OTHERS');
       });
     }
   };
@@ -162,53 +172,88 @@ const NovaOcorrenciaInput: React.FC<NovaOcorrenciaInputProps> = ({ onPublicar, i
   return (
     <Card style={styles.inputCard}>
       <View style={styles.inputContainer}>
-        <View style={styles.avatar} />
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatar} />
+        )}
         <View style={styles.textInputWrapper}>
           <TextInput
             style={[styles.textInput, styles.titleInput]}
             placeholder="Título da ocorrência"
+            placeholderTextColor="#444"
+            selectionColor="#0A84FF"
             value={title}
             onChangeText={setTitle}
             underlineColor="transparent"
             activeUnderlineColor="transparent"
+            mode="flat"
+            textColor="#000"
+            theme={{ colors: { text: '#000', placeholder: '#444' } }}
           />
           <View style={styles.divider} />
           <TextInput
             style={styles.textInput}
-            placeholder="No que você está pensando?"
+            placeholder="Descreva sua ocorrência"
+            placeholderTextColor="#444"
+            selectionColor="#0A84FF"
             value={description}
             onChangeText={setDescription}
             multiline
             underlineColor="transparent"
             activeUnderlineColor="transparent"
+            mode="flat"
+            textColor="#000"
+            theme={{ colors: { text: '#000', placeholder: '#444' } }}
           />
-        </View>
-      </View>
-      <Card.Actions style={styles.cardActions}>
-        <Button
-          mode="contained"
-          onPress={handlePublicar}
-          style={styles.publicarButton}
-          disabled={!title.trim() || !description.trim() || isPosting}
-          loading={isPosting}
-        >
-          {isPosting ? 'Publicando...' : 'Publicar'}
-        </Button>
-      </Card.Actions>
-    </Card>
-  );
-};
 
-// --- TELA PRINCIPAL ---
+          <Text style={{ marginTop: 10, marginBottom: 8, fontWeight: '600', color: '#333' }}>
+            Selecione o tipo da ocorrência
+          </Text>
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <TouchableOpacity style={styles.pickerField} onPress={() => setMenuVisible(true)}>
+                <Text style={styles.pickerText}>{selectedLabel}</Text>
+                <Text style={styles.pickerChevron}>▾</Text>
+              </TouchableOpacity>
+            }
+          >
+            {occurrenceOptions.map(opt => (
+              <Menu.Item
+                key={opt.value}
+                onPress={() => { setOccurrenceType(opt.value as any); setMenuVisible(false); }}
+                title={opt.label}
+              />
+            ))}
+          </Menu>
+         </View>
+       </View>
+       <Card.Actions style={styles.cardActions}>
+         <Button
+           mode="contained"
+           onPress={handlePublicar}
+           style={styles.publicarButton}
+           disabled={!title.trim() || !description.trim() || isPosting}
+           loading={isPosting}
+         >
+           {isPosting ? 'Publicando...' : 'Publicar'}
+         </Button>
+       </Card.Actions>
+     </Card>
+   );
+ };
+
 export default function OcorrenciasScreen() {
-  const [ocorrencias, setOcorrencias] = useState<OcorrenciaComAutor[]>([]); // <- Usa o novo tipo
+  const [ocorrencias, setOcorrencias] = useState<OcorrenciaComAutor[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isPosting, setIsPosting] = useState<boolean>(false);
-  const [userType, setUserType] = useState<string>('USER'); // Adicione um estado para controlar o tipo de usuário
+  const [userType, setUserType] = useState<string>('USER');
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string | undefined>(undefined);
   const { colors } = useTheme();
   const router = useRouter();
 
-  // --- 3. FUNÇÃO DE BUSCA ATUALIZADA PARA ENRIQUECER DADOS ---
   const fetchOcorrencias = async () => {
     setLoading(true);
     try {
@@ -218,37 +263,47 @@ export default function OcorrenciasScreen() {
         return;
       }
 
-      // Decodifica o token para pegar o userType
       const decodedToken = jwtDecode<DecodedToken>(token);
       setUserType(decodedToken.userType);
 
+      try {
+        const headers = { 'Authorization': `Bearer ${token}` };
+        const avatarResponse = await fetch(`${API_URL}/users/${decodedToken.userId}/avatar`, { headers });
+        if (avatarResponse.ok) {
+          const avatarJson = await avatarResponse.json();
+          const raw = avatarJson.avatarUrl || avatarJson.url || avatarJson.avatar;
+          setCurrentUserAvatar(buildAvatarUrl(raw));
+        } else {
+          setCurrentUserAvatar(undefined);
+        }
+      } catch (e) {
+        setCurrentUserAvatar(undefined);
+      }
+
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      // Usa rota diferente baseada no tipo de usuário
       const endpoint = decodedToken.userType === 'ADMIN' 
-        ? `${API_URL}/occurrences/`        // ADMIN vê todas
-        : `${API_URL}/occurrences/mines`;  // USER vê apenas suas
+        ? `${API_URL}/occurrences/`
+        : `${API_URL}/occurrences/mines`;
 
       const response = await fetch(endpoint, { headers });
       if (!response.ok) throw new Error('Falha ao buscar ocorrências.');
       const data: Ocorrencia[] = await response.json();
 
-      // Etapa 2: Enriquecer os dados com informações do autor
-      const userCache = new Map<string, { name: string; apt: number }>();
+      const userCache = new Map<string, { name: string; apt: number; avatarUrl?: string }>();
 
       const enrichedDataPromises = data.map(async (ocorrencia) => {
         try {
-          // Verifica se já temos os dados deste usuário no cache
           if (userCache.has(ocorrencia.userId)) {
             const cachedUser = userCache.get(ocorrencia.userId)!;
             return {
               ...ocorrencia,
               authorName: cachedUser.name,
               apartmentNumber: cachedUser.apt,
+              authorAvatarUrl: cachedUser.avatarUrl,
             };
           }
 
-          // Se não, busca os dados
           const userResponse = await fetch(`${API_URL}/users/${ocorrencia.userId}`, { headers });
           if (!userResponse.ok) throw new Error();
           const userData: UserData = await userResponse.json();
@@ -257,20 +312,32 @@ export default function OcorrenciasScreen() {
           if (!apartmentResponse.ok) throw new Error();
           const apartmentData: ApartmentData = await apartmentResponse.json();
 
-          // Armazena no cache para o próximo uso
-          userCache.set(ocorrencia.userId, { name: userData.fullName, apt: apartmentData.number });
+          let avatarUrl: string | undefined;
+          try {
+            const avatarResponse = await fetch(`${API_URL}/users/${ocorrencia.userId}/avatar`, { headers });
+            if (avatarResponse.ok) {
+              const avatarJson = await avatarResponse.json();
+              const raw = avatarJson.avatarUrl || avatarJson.url || avatarJson.avatar;
+              avatarUrl = buildAvatarUrl(raw);
+            }
+          } catch (e) {
+            avatarUrl = undefined;
+          }
+
+          userCache.set(ocorrencia.userId, { name: userData.fullName, apt: apartmentData.number, avatarUrl });
 
           return {
             ...ocorrencia,
             authorName: userData.fullName,
             apartmentNumber: apartmentData.number,
+            authorAvatarUrl: avatarUrl,
           };
         } catch (e) {
-          // Se falhar em buscar um autor, define um valor padrão para não quebrar a lista
           return {
             ...ocorrencia,
             authorName: 'Morador não identificado',
             apartmentNumber: 'N/A',
+            authorAvatarUrl: undefined,
           };
         }
       });
@@ -291,8 +358,7 @@ export default function OcorrenciasScreen() {
     fetchOcorrencias();
   }, []);
 
-  // --- FUNÇÃO PARA CRIAR OCORRÊNCIA (Sem alterações) ---
-  const handlePublicar = async ({ title, description }: { title: string; description: string }) => {
+  const handlePublicar = async ({ title, description, type }: { title: string; description: string; type: string }) => {
     setIsPosting(true);
     Keyboard.dismiss();
 
@@ -328,7 +394,7 @@ export default function OcorrenciasScreen() {
       const body = {
         title,
         description,
-        type: "OTHERS",
+        type,
         condominiumId,
       };
 
@@ -343,7 +409,10 @@ export default function OcorrenciasScreen() {
       console.log('Occurrence Response Body:', responseParsed);
 
       if (!occurrenceResponse.ok) {
-        throw new Error('Falha ao criar a ocorrência.');
+        const serverMessage = responseParsed?.message || responseParsed?.error || JSON.stringify(responseParsed);
+        console.error('Erro ao criar ocorrência:', serverMessage);
+        Alert.alert('Erro ao publicar', serverMessage);
+        throw new Error(serverMessage);
       }
 
       Alert.alert("Sucesso!", "Sua ocorrência foi publicada.");
@@ -379,11 +448,10 @@ export default function OcorrenciasScreen() {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <>
-              {/* Atualize o título do header para ser dinâmico */}
               <Text style={styles.headerTitle}>
                 {userType === 'ADMIN' ? 'Todas as Ocorrências' : 'Minhas Ocorrências'}
               </Text>
-              <NovaOcorrenciaInput onPublicar={handlePublicar} isPosting={isPosting} />
+              <NovaOcorrenciaInput onPublicar={handlePublicar} isPosting={isPosting} avatarUrl={currentUserAvatar} />
             </>
           }
           ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
@@ -405,7 +473,6 @@ export default function OcorrenciasScreen() {
   );
 }
 
-// --- ESTILOS (Sem alterações) ---
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -450,14 +517,21 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   textInput: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#F4F6F8',
+    color: '#111',
     fontSize: 16,
-    paddingHorizontal: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E6EBF0',
     minHeight: 50,
   },
   titleInput: {
-    fontWeight: 'bold',
-    minHeight: 20,
+    fontWeight: '700',
+    minHeight: 44,
+    fontSize: 17,
+    paddingVertical: 8,
   },
   divider: {
     height: 1,
@@ -480,7 +554,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    // A borda será adicionada dinamicamente no componente
   },
   avatar: {
     width: 40,
@@ -488,25 +561,35 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#007AFF',
   },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+  },
   autor: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
   },
-  subtitle: {
-    fontSize: 14,
+  apartment: {
+    fontSize: 13,
     color: '#666',
+    marginTop: 2,
   },
   cardTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#111',
     marginBottom: 4,
   },
   texto: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#333',
+    color: '#111',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#444',
   },
   bottomMenuContainer: {
     flexDirection: 'row',
@@ -526,4 +609,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  pickerField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F4F6F8',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E6EBF0',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  pickerText: {
+    color: '#111',
+    fontSize: 15,
+  },
+  pickerChevron: {
+    color: '#777',
+    marginLeft: 8,
+  },
 });
+
+const buildAvatarUrl = (avatarPath?: string | null): string | undefined => {
+  if (!avatarPath) return undefined;
+  if (avatarPath.startsWith('http')) return avatarPath;
+  if (avatarPath.startsWith('/')) return `${API_URL}${avatarPath}`;
+  return avatarPath;
+};
