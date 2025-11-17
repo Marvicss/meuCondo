@@ -1,11 +1,10 @@
-// Salve este arquivo como app/register-space.tsx
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -16,12 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
 
 const RegisterSpaceScreen = () => {
-  const theme = useTheme();
-  const router = useRouter();
+  const theme = useTheme();
+  const router = useRouter();
 
-  const [spaceName, setSpaceName] = useState('');
-  const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [spaceName, setSpaceName] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Função para garantir que temos o condominiumId (igual ao usado em outros lugares)
   const ensureCondominiumId = useCallback(async () => {
@@ -74,14 +73,14 @@ const RegisterSpaceScreen = () => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        Alert.alert('Erro', 'Sessão expirada. Faça login novamente.');
-        router.replace('/login');
-        return;
-      }
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Erro', 'Sessão expirada. Faça login novamente.');
+        router.replace('/login');
+        return;
+      }
 
       // Busca o condominiumId obrigatório
       const condoId = await ensureCondominiumId();
@@ -126,91 +125,104 @@ const RegisterSpaceScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}> 
       <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Cadastrar Nova Vaga" titleStyle={{ color: theme.colors.onSurface }} />
       </Appbar.Header>
 
       <View style={styles.container}>
-        <Text style={[styles.title, { color: theme.colors.onSurface }]}>
+        <Text style={[styles.title, { color: theme.colors.onSurface }]}> 
           Dados da Nova Vaga
         </Text>
-        <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+        <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}> 
           Preencha as informações abaixo para adicionar uma nova vaga de estacionamento.
         </Text>
 
-        <TextInput
-          label="Nome da Vaga (Ex: G1-23, T-05)"
-          value={spaceName}
-          onChangeText={setSpaceName}
-          mode="outlined"
-          style={styles.input}
-          activeOutlineColor="#0099FF"
-        />
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <TextInput
+            label="Nome da Vaga (Ex: G1-23, T-05)"
+            value={spaceName}
+            onChangeText={setSpaceName}
+            mode="outlined"
+            style={styles.input}
+            activeOutlineColor="#0099FF"
+          />
 
-        <TextInput
-          label="Descrição (Opcional)"
-          value={description}
-          onChangeText={setDescription}
-          mode="outlined"
-          style={styles.input}
-          activeOutlineColor="#0099FF"
-          multiline
-          numberOfLines={3}
-        />
+          <TextInput
+            label="Descrição (Opcional)"
+            value={description}
+            onChangeText={setDescription}
+            mode="outlined"
+            style={styles.input}
+            activeOutlineColor="#0099FF"
+            multiline
+            numberOfLines={3}
+          />
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Cadastrar Vaga</Text>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleRegister}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Cadastrar Vaga</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 24,
-  },
-  input: {
-    marginBottom: 16,
-  },
-  button: {
-    backgroundColor: '#0099FF',
-    padding: 18,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonDisabled: {
-    backgroundColor: '#A0A0A0',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  safeArea: {
+    flex: 1,
+  },
+  container: {
+    flexGrow: 1,
+    padding: 20,
+    paddingTop: 0,
+  },
+  headerContainerComSombra: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+    
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+  },
+  input: {
+    marginBottom: 16,
+  },
+  button: {
+    backgroundColor: '#0099FF',
+    padding: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  buttonDisabled: {
+    backgroundColor: '#A0A0A0',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });
 
 export default RegisterSpaceScreen;
