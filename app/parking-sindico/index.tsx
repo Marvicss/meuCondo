@@ -1,5 +1,3 @@
-// Salve este arquivo como, por exemplo, app/parking.tsx
-
 import BottomMenu from '@/components/BottomMenu';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,57 +9,55 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- DEFINIÇÃO DE TIPOS ---
 type ParkingSpace = {
-  id: string;
-  name: string; // Ex: "Vaga 1"
-  isOccupied: boolean;
-  condominiumId: string;
+  id: string;
+  name: string; // Ex: "Vaga 1"
+  isOccupied: boolean;
+  condominiumId: string;
 };
 
 const ParkingScreen = () => {
-  const theme = useTheme();
-  const router = useRouter();
+  const theme = useTheme();
+  const router = useRouter();
 
-  const [parkingSpaces, setParkingSpaces] = useState<ParkingSpace[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [parkingSpaces, setParkingSpaces] = useState<ParkingSpace[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // useFocusEffect para buscar os dados sempre que a tela for focada
-  useFocusEffect(
-    useCallback(() => {
-      const fetchParkingData = async () => {
-        setLoading(true);
-        try {
-          const token = await AsyncStorage.getItem("token");
-          if (!token) {
-            router.replace('/login');
-            return;
-          }
+  // useFocusEffect para buscar os dados sempre que a tela for focada
+  useFocusEffect(
+    useCallback(() => {
+      const fetchParkingData = async () => {
+        setLoading(true);
+        try {
+          const token = await AsyncStorage.getItem("token");
+          if (!token) {
+            router.replace('/login');
+            return;
+          }
 
           // **IMPORTANTE**: Substitua pela sua URL de API real para buscar as vagas
           const response = await fetch(`https://meu-condo.onrender.com/parkings/`, {
             headers: { Authorization: `Bearer ${token}` }
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            setParkingSpaces(data);
-          } else {
-            // Se a API falhar, usamos dados de exemplo para visualização
-            console.log("Falha ao buscar dados da API. Usando dados de exemplo.");
-            setParkingSpaces(mockData); 
-          }
+          if (response.ok) {
+            const data = await response.json();
+            setParkingSpaces(data);
+          } else {
+            console.log("Falha ao buscar dados da API. Usando dados de exemplo.");
+            setParkingSpaces(mockData); 
+          }
 
-        } catch (err) {
-          Alert.alert("Erro", "Falha na comunicação com o servidor. Usando dados de exemplo.");
-          // Em caso de erro de rede, também usamos dados de exemplo
-          setParkingSpaces(mockData);
-        } finally {
-          setLoading(false);
-        }
-      };
+        } catch (err) {
+          Alert.alert("Erro", "Falha na comunicação com o servidor. Usando dados de exemplo.");
+          setParkingSpaces(mockData);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-      fetchParkingData();
-    }, [router])
-  );
+      fetchParkingData();
+    }, [router])
+  );
 
   const handleRemovePerson = (spaceId: string) => {
     // Lógica para chamar a API e desocupar a vaga
@@ -122,9 +118,9 @@ const ParkingScreen = () => {
   ];
 
 
-  if (loading) {
-    return <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" /></View>;
-  }
+  if (loading) {
+    return <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" /></View>;
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
@@ -142,14 +138,15 @@ const ParkingScreen = () => {
             <Text style={styles.registerButtonText}>Cadastrar vagas</Text>
         </TouchableOpacity>
 
-        {/* Título da Seção */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Gerenciar Vagas</Text>
+        {/* TÍTULO COM SOMBRA APLICADA */}
+        <View style={[styles.titleContainerWithShadow, { backgroundColor: theme.colors.background }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Gerenciar Vagas</Text>
+        </View>
 
-        {/* Lista de Vagas */}
-        {parkingSpaces.map((space) => (
-            <View key={space.id} style={[styles.card, {backgroundColor: theme.colors.surface}, space.isOccupied && styles.cardOccupied]}>
-                
-                {space.isOccupied && <View style={styles.occupiedIndicator} />}
+        {parkingSpaces.map((space) => (
+            <View key={space.id} style={[styles.card, {backgroundColor: theme.colors.surface}, space.isOccupied && styles.cardOccupied]}>
+                
+                {space.isOccupied && <View style={styles.occupiedIndicator} />}
 
                 {/* Botão de excluir no canto superior direito */}
                 <TouchableOpacity 
@@ -191,6 +188,20 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
   },
+  titleContainerWithShadow: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+    
+    // A Sombra
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
+  },
   container: {
     padding: 20,
     paddingBottom: 120,
