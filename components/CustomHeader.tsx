@@ -4,23 +4,23 @@ import { Appbar, useTheme } from 'react-native-paper';
 
 type CustomHeaderProps = React.ComponentProps<typeof Appbar.Header>;
 
-const CustomHeader = (props: CustomHeaderProps) => {
+const CustomHeader = ({ children, style, ...props }: CustomHeaderProps) => {
   const theme = useTheme();
+
+  const validChildren = React.Children.toArray(children).filter((child) =>
+    React.isValidElement(child)
+  );
 
   return (
     <Appbar.Header
-
       style={[
         styles.headerComSombra,
         { backgroundColor: theme.colors.surface },
-        props.style,
+        style,
       ]}
-
-      {...props} 
+      {...props}
     >
-      {/* Isso garante que o <Appbar.Content ... /> que você 
-          passar dentro dele seja renderizado */}
-      {props.children}
+      {validChildren}
     </Appbar.Header>
   );
 };
@@ -31,13 +31,15 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2, // Sombra para baixo
+      height: 2,
     },
-    shadowOpacity: 0.15, // Opacidade da sombra
-    shadowRadius: 3.84,  // O "blur" (esfumaçado)
-    
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
     // Sombra para Android
     elevation: 5,
+    
+    borderBottomWidth: 0,
+    zIndex: 1,
   },
 });
 

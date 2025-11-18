@@ -8,7 +8,7 @@ import { Button, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
 
-// --- DEFINIÇÃO DE TIPOS (sem mudanças) ---
+// --- TIPAGENS ---
 type DecodedToken = { userId: string; email: string; userType: string; };
 type Customer = { id: string; fullName: string; username: string; email: string; phoneNumber: string; cpf: string; userType: string; createdAt: string; };
 type News = { id: string; condominiumId: string; message: string; type: string; createdAt: string; };
@@ -25,8 +25,8 @@ type Votacao = {
 };
 
 const Home = () => {
-  const theme = useTheme();
-  const router = useRouter();
+  const theme = useTheme();
+  const router = useRouter();
 
   const [user, setUser] = useState<Customer | null>(null);
   const [latestNews, setLatestNews] = useState<News | null>(null);
@@ -154,9 +154,12 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   headerContainerComSombra: {
+    width: '100%',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 18,
+    paddingTop: 10,
+    paddingBottom: 80, // Aumentei para o BottomMenu não cobrir o conteúdo
+    zIndex: 10, // Garante que a sombra fique sobre o conteúdo
+    // Sombra
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
