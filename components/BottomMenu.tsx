@@ -23,16 +23,16 @@ const MORADOR_ROUTES = {
   home: '/home',
   cash: '/prestacao-morador',
   notice: '/notice',
-  reservas: '/reservas/morador',
-  parking: '/parking',
+  reservas: '/votation/morador',
+  parking: '/reservas/morador',
 };
 
 const ADMIN_ROUTES = {
   home: '/home',
   cash: '/prestacao-morador',
   notice: '/news-sindico',
-  reservas: '/reservas/morador',
-  parking: '/parking',
+  reservas: '/votation/sindico',
+  parking: '/reservas/sindico',
 };
 
 const BottomMenu: React.FC = () => {
