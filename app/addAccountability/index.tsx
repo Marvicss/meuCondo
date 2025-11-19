@@ -9,11 +9,16 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
+import {
+  Appbar,
+  Button,
+  Text,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Condominium {
   id: string;
@@ -27,15 +32,17 @@ interface Condominium {
 }
 
 export default function AddAccountability() {
-  const router = useRouter();
+  const theme = useTheme();
+  const router = useRouter();
 
-  const [condominiums, setCondominiums] = useState<Condominium[]>([]);
-  const [selectedCondoId, setSelectedCondoId] = useState("");
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState("EXPENSE");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
+  const [condominiums, setCondominiums] = useState<Condominium[]>([]);
+  const [selectedCondoId, setSelectedCondoId] = useState("");
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
+  const [type, setType] = useState("EXPENSE");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchCondominiums() {
@@ -105,8 +112,9 @@ export default function AddAccountability() {
       return;
     }
 
-    try {
-      const token = await AsyncStorage.getItem("token");
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
 
       const response = await fetch(`${API_URL}/accountabilities/`, {
         method: "POST",
@@ -130,133 +138,183 @@ export default function AddAccountability() {
         return;
       }
 
-      Alert.alert("Sucesso", "Conta criada com sucesso!");
-      setTitle("");
-      setAmount("");
-      setType("EXPENSE");
-      setDescription("");
-      setDate("");
-      setSelectedCondoId("");
-    } catch (error) {
-      Alert.alert("Erro", "Erro ao conectar ao servidor");
-      console.error(error);
-    }
-  }
+      Alert.alert("Sucesso", "Conta criada com sucesso!");
+      
+      setTitle("");
+      setAmount("");
+      setType("EXPENSE");
+      setDescription("");
+      setDate("");
+      setSelectedCondoId("");
+      
+      router.back();
+      
+    } catch (error) {
+      Alert.alert("Erro", "Erro ao conectar ao servidor");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <View style={styles.container}>
-          <Text style={styles.title}>Prestação de Contas</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.BackAction onPress={() => router.back()} color={theme.colors.onSurface} />
+        <Appbar.Content title="Nova Prestação de Conta" titleStyle={{ color: theme.colors.onSurface }} />
+      </Appbar.Header>
 
-          <Text style={styles.label}>Valor</Text>
-          <TextInput
-            style={styles.input}
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="decimal-pad"
-            placeholder="Digite o valor"
-            placeholderTextColor="#888"
-          />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+          <View style={styles.formContainer}>
+            
+            <TextInput
+              label="Título"
+              mode="outlined"
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Digite o título"
+              style={styles.input}
+              theme={{ colors: { background: theme.colors.surface } }}
+            />
 
-          <Text style={styles.label}>Tipo</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={type}
-              onValueChange={(itemValue) => setType(itemValue)}
-              style={styles.input}
-              itemStyle={styles.pickerItem}
-            >
-              <Picker.Item label="Despesa" value="EXPENSE" />
-              <Picker.Item label="Receita" value="INCOME" />
-            </Picker>
-          </View>
+            <TextInput
+              label="Valor"
+              mode="outlined"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="decimal-pad"
+              placeholder="Digite o valor"
+              style={styles.input}
+              left={<TextInput.Affix text="R$ " />}
+              theme={{ colors: { background: theme.colors.surface } }}
+            />
 
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            multiline
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Digite uma descrição"
-            placeholderTextColor="#888"
-          />
+            {/* Picker de TIPO */}
+            <View style={styles.pickerContainer}>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+                Tipo de Movimentação
+              </Text>
+              <View style={[
+                styles.pickerWrapper, 
+                { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outline,
+                }
+              ]}>
+                <Picker
+                  selectedValue={type}
+                  onValueChange={(itemValue) => setType(itemValue)}
+                  // Quando FECHADO, usa a cor do tema (branco no escuro, preto no claro)
+                  style={{ color: theme.colors.onSurface }} 
+                  dropdownIconColor={theme.colors.onSurface}
+                >
+                  {/* Quando ABERTO, forçamos PRETO porque o fundo é branco */}
+                  <Picker.Item label="Despesa" value="EXPENSE" color="#000000"/>
+                  <Picker.Item label="Receita" value="INCOME" color="#000000"/>
+                </Picker>
+              </View>
+            </View>
 
-          <Text style={styles.label}>Data (DD-MM-AAAA)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="DD-MM-AAAA"
-            value={date}
-            onChangeText={handleDateChange}
-            keyboardType="numeric"
-            placeholderTextColor="#888"
-          	maxLength={10}
-        	/>
+            <TextInput
+              label="Descrição"
+              mode="outlined"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Digite uma descrição"
+              multiline
+              numberOfLines={3}
+              style={styles.input}
+              theme={{ colors: { background: theme.colors.surface } }}
+            />
 
-        	<Text style={styles.label}>Condomínio</Text>
-        	<View style={styles.pickerContainer}>
-          	<Picker
-            	selectedValue={selectedCondoId}
-            	onValueChange={(value) => setSelectedCondoId(value)}
-            	style={styles.input}
-            	itemStyle={styles.pickerItem}
-          	>
-            	<Picker.Item label="Selecione um condomínio" value="" />
-            	{condominiums.map((condo) => (
-              	<Picker.Item key={condo.id} label={condo.name} value={condo.id} />
-            	))}
-          	</Picker>
-        	</View>
+            <TextInput
+              label="Data (DD-MM-AAAA)"
+              mode="outlined"
+              value={date}
+              onChangeText={handleDateChange}
+              keyboardType="numeric"
+              placeholder="DD-MM-AAAA"
+              maxLength={10}
+              style={styles.input}
+              right={<TextInput.Icon icon="calendar" />}
+              theme={{ colors: { background: theme.colors.surface } }}
+            />
 
-        	<TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          	<Text style={styles.buttonText}>Criar Conta</Text>
-        	</TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+            {/* Picker de CONDOMÍNIO */}
+            <View style={styles.pickerContainer}>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 4 }}>
+                Condomínio
+              </Text>
+              <View style={[
+                styles.pickerWrapper, 
+                { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outline,
+                }
+              ]}>
+                <Picker
+                  selectedValue={selectedCondoId}
+                  onValueChange={(value) => setSelectedCondoId(value)}
+                  style={{ color: theme.colors.onSurface }}
+                  dropdownIconColor={theme.colors.onSurface}
+                >
+                  <Picker.Item 
+                    label="Selecione um condomínio" 
+                    value="" 
+                    color="#666666" // Cinza escuro para o placeholder
+                  />
+                  {condominiums.map((condo) => (
+                    <Picker.Item 
+                      key={condo.id} 
+                      label={condo.name} 
+                      value={condo.id} 
+                      color="#000000" // Preto para os itens
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            <Button 
+              mode="contained" 
+              onPress={handleSubmit}
+              loading={loading}
+              disabled={loading}
+              style={styles.button}
+              contentStyle={{ height: 50 }}
+              labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+            >
+              Criar Conta
+            </Button>
+
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
     padding: 24,
-    backgroundColor: "#fff", // Alterado para fundo branco
   },
-  title: {
-    fontSize: 24,
-    color: "#333", // Alterado para texto escuro
-    fontWeight: "bold",
-    marginBottom: 24,
-    textAlign: "center", // <-- Centraliza o texto
-  },
-  label: {
-    color: "#333", // Alterado para texto escuro
-    marginTop: 16,
-    marginBottom: 4,
-    fontWeight: "bold",
+  formContainer: {
+    flex: 1,
   },
   input: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     marginBottom: 16,
-    color: "#000",
-    elevation: 2, // Sombra leve Android
-    shadowColor: "#000", // Sombra leve iOS
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
-  pickerItem: {
-    color: "#000",
+  pickerWrapper: {
+    borderWidth: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginTop: 4, 
   },
   button: {
     backgroundColor: "#0095FF", // Azul oficial do app
