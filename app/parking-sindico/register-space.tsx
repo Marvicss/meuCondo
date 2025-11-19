@@ -2,7 +2,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,8 +11,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { TextInput, useTheme } from 'react-native-paper';
+import { Appbar, TextInput, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import api from '../services/api';
 
 const RegisterSpaceScreen = () => {
   const theme = useTheme();
@@ -21,6 +22,49 @@ const RegisterSpaceScreen = () => {
   const [spaceName, setSpaceName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Função para garantir que temos o condominiumId (igual ao usado em outros lugares)
+  const ensureCondominiumId = useCallback(async () => {
+    const candidates = ['condominiumId', 'condoId', 'condominioId'];
+    for (const key of candidates) {
+      const val = await AsyncStorage.getItem(key);
+      if (val) return val;
+    }
+    const token = await AsyncStorage.getItem('token');
+    if (!token) return null;
+    try {
+      let list: any[] = [];
+      try {
+        const res = await api.get<any[]>('/condominiums', {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        list = Array.isArray(res.data) ? res.data : [];
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          try {
+            const res2 = await api.get<any[]>('/condominiums/user', {
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            list = Array.isArray(res2.data) ? res2.data : [];
+          } catch (innerErr) {
+            console.error('Erro ao buscar condomínios:', innerErr);
+            return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      return list.length > 0 ? String(list[0].id) : null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Função para lidar com o cadastro da vaga
   const handleRegister = async () => {
@@ -39,26 +83,39 @@ const RegisterSpaceScreen = () => {
         return;
       }
 
-      // **IMPORTANTE**: Substitua pela sua URL de API real para criar vagas
-      const response = await fetch(`https://meu-condo.vercel.app/parking-spaces`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: spaceName,
-          description: description,
-          // Outros campos que sua API possa exigir, como condominiumId
-        }),
-      });
+      // Busca o condominiumId obrigatório
+      const condoId = await ensureCondominiumId();
+      if (!condoId) {
+        Alert.alert('Condomínio não identificado', 'Não foi possível determinar o condomínio do usuário.');
+        setLoading(false);
+        return;
+      }
+      
+      const payload: any = {
+        name: spaceName.trim(),
+        capacity: 1, // Campo obrigatório - capacidade mínima de 1 veículo
+        available: true, // Vaga criada está disponível
+        condominiumId: condoId,
+      };
 
-      if (response.ok) {
+      // Só adiciona description se não estiver vazio
+      if (description.trim()) {
+        payload.description = description.trim();
+      }
+
+      console.log('Criando vaga com payload:', payload);
+
+      try {
+        // Usando api do axios ao invés de fetch direto
+        const response = await api.post('/parkings/', payload);
+        console.log('Resposta sucesso:', response.data);
         Alert.alert('Sucesso!', 'A vaga foi cadastrada com sucesso.');
-        router.back(); // Volta para a tela anterior (Gerenciar Vagas)
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Erro no Cadastro', errorData.message || 'Não foi possível cadastrar a vaga.');
+        router.back();
+      } catch (error: any) {
+        console.log('Erro completo:', error);
+        console.log('Erro response:', error?.response?.data);
+        const errorMsg = error?.response?.data?.message || error?.message || 'Não foi possível cadastrar a vaga.';
+        Alert.alert('Erro no Cadastro', errorMsg);
       }
     } catch (error) {
       console.error(error);
@@ -70,10 +127,11 @@ const RegisterSpaceScreen = () => {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-        {/* O header com o título "Cadastrar Vaga" e o botão de voltar
-            será configurado automaticamente pelo Expo Router no _layout.tsx.
-            <Stack.Screen options={{ title: 'Cadastrar Nova Vaga' }} /> 
-        */}
+      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.Content title="Cadastrar Nova Vaga" titleStyle={{ color: theme.colors.onSurface }} />
+      </Appbar.Header>
+
       <View style={styles.container}>
         <Text style={[styles.title, { color: theme.colors.onSurface }]}>
           Dados da Nova Vaga

@@ -1,8 +1,10 @@
 // app/login/index.tsx
 
 import { API_URL } from "@/constants/envs";
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import {
   Alert,
@@ -15,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -43,7 +44,16 @@ export default function LoginScreen() {
 
       const data = await response.json();
       await AsyncStorage.setItem("token", data.token);
-      router.replace("/home"); // Redireciona para a rota /home
+      
+      // Decodifica o token para verificar o tipo de usuário
+      const decoded: { userType: string } = jwtDecode(data.token);
+      
+      // Redireciona baseado no tipo de usuário
+      if (decoded.userType === 'ADMIN') {
+        router.replace("/home/sindico");
+      } else {
+        router.replace("/home");
+      }
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
       console.error(error);

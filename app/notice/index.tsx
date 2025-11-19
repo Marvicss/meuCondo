@@ -149,7 +149,7 @@ export default function QuadroAvisos() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  container: { padding: 16, paddingBottom: 20 }, // Reduzido o padding para o menu não sobrepor
+  container: { padding: 16, paddingBottom: 120 },
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: { width: '100%', marginBottom: 16 },
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

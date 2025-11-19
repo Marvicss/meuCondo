@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingHorizontal: 16,
     paddingTop: 20, 
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   filtersContainer: {
     flexDirection: 'row',

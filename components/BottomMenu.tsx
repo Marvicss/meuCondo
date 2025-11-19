@@ -28,7 +28,7 @@ const MORADOR_ROUTES = {
 };
 
 const ADMIN_ROUTES = {
-  home: '/home',
+  home: '/home/sindico',
   cash: '/addAccountability',
   notice: '/news-sindico',
   reservas: '/votation/sindico',

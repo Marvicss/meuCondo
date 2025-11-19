@@ -356,6 +356,11 @@ export default function SindicoScreen() {
           const isReserved = !room.available && !!match;
           const imgMatch = room.description.match(/\[IMG_SEED:(.*?)\]/);
           const imgSeed = imgMatch ? imgMatch[1] : room.id;
+          // Limpa a descrição removendo as tags internas
+          const cleanDescription = room.description
+            .split('[RESERVADO_EM:')[0]
+            .replace(/\[IMG_SEED:.*?\]/g, '')
+            .trim();
 
           return (
             <Card key={room.id} style={{ backgroundColor: theme.colors.surface, marginTop: 16 }}>
@@ -381,7 +386,7 @@ export default function SindicoScreen() {
                     <Divider style={{marginVertical: 10}} />
                   </>
                 ) : (
-                  <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>{room.description.split('[RESERVADO_EM:')[0].trim()}</Text>
+                  <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>{cleanDescription}</Text>
                 )}
               </Card.Content>
               <Card.Actions style={[styles.rowBetween, { flexWrap: 'wrap' }] }>

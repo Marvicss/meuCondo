@@ -33,6 +33,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="register/index" options={{ headerShown: false }} />
           <Stack.Screen name="home/index" options={{ headerShown: false }} />
+          <Stack.Screen name="home/sindico" options={{ headerShown: false }} />
           <Stack.Screen name="reservas/morador" options={{ headerShown: false }} />
           <Stack.Screen name="reservas/sindico" options={{ headerShown: false }} />
           <Stack.Screen name="votation/morador" options={{ headerShown: false }} />
@@ -42,6 +43,8 @@ export default function RootLayout() {
           <Stack.Screen name="addAccountability/index" options={{ headerShown: false }} />
           <Stack.Screen name="prestacao-morador/index" options={{ headerShown: false }} />
           <Stack.Screen name="parking/index" options={{ headerShown: false }} />
+          <Stack.Screen name="parking-sindico/index" options={{ headerShown: false }} />
+          <Stack.Screen name="parking-sindico/register-space" options={{ headerShown: false }} />
           <Stack.Screen name="notice/index" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
         </Stack>

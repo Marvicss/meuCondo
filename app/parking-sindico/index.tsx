@@ -5,8 +5,8 @@ import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View, Text } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Appbar, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- DEFINIÇÃO DE TIPOS ---
@@ -37,7 +37,7 @@ const ParkingScreen = () => {
           }
 
           // **IMPORTANTE**: Substitua pela sua URL de API real para buscar as vagas
-          const response = await fetch(`https://meu-condo.vercel.app/parking-spaces`, {
+          const response = await fetch(`https://meu-condo.onrender.com/parkings/`, {
             headers: { Authorization: `Bearer ${token}` }
           });
 
@@ -74,6 +74,45 @@ const ParkingScreen = () => {
       ]
     );
   };
+
+  const handleDeleteParking = async (spaceId: string, spaceName: string) => {
+    Alert.alert(
+      "Excluir Vaga",
+      `Tem certeza que deseja excluir a vaga ${spaceName}? Esta ação não pode ser desfeita.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Excluir", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              if (!token) {
+                router.replace('/login');
+                return;
+              }
+
+              const response = await fetch(`https://meu-condo.onrender.com/parkings/${spaceId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+              });
+
+              if (response.ok) {
+                Alert.alert("Sucesso", "Vaga excluída com sucesso!");
+                // Atualiza a lista removendo a vaga excluída
+                setParkingSpaces(prevSpaces => prevSpaces.filter(space => space.id !== spaceId));
+              } else {
+                Alert.alert("Erro", "Não foi possível excluir a vaga.");
+              }
+            } catch (error) {
+              console.error("Erro ao excluir vaga:", error);
+              Alert.alert("Erro", "Falha ao excluir a vaga.");
+            }
+          }
+        }
+      ]
+    );
+  };
   
   // Dados de exemplo para desenvolvimento (enquanto a API não está pronta)
   const mockData: ParkingSpace[] = [
@@ -89,14 +128,16 @@ const ParkingScreen = () => {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-        {/* O header com título "Estacionamento" e botão de voltar
-            geralmente é configurado no arquivo _layout.tsx do Expo Router.
-            <Stack.Screen options={{ title: 'Estacionamento' }} /> 
-        */}
-      <ScrollView contentContainerStyle={styles.container}>
+      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.Content title="Estacionamento" titleStyle={{ color: theme.colors.onSurface }} />
+      </Appbar.Header>
+
+      <View style={styles.mainContent}>
+        <ScrollView contentContainerStyle={styles.container}>
         
         {/* Botão Cadastrar Vagas */}
-        <TouchableOpacity style={styles.registerButton} onPress={() => router.push('/sindico/parking-sindico/register-space')}>
+        <TouchableOpacity style={styles.registerButton} onPress={() => router.push('/parking-sindico/register-space')}>
             <Feather name="plus" size={24} color="#fff" />
             <Text style={styles.registerButtonText}>Cadastrar vagas</Text>
         </TouchableOpacity>
@@ -109,6 +150,14 @@ const ParkingScreen = () => {
             <View key={space.id} style={[styles.card, {backgroundColor: theme.colors.surface}, space.isOccupied && styles.cardOccupied]}>
                 
                 {space.isOccupied && <View style={styles.occupiedIndicator} />}
+
+                {/* Botão de excluir no canto superior direito */}
+                <TouchableOpacity 
+                  style={styles.deleteButton} 
+                  onPress={() => handleDeleteParking(space.id, space.name)}
+                >
+                  <Feather name="trash-2" size={20} color="#FF453A" />
+                </TouchableOpacity>
 
                 <FontAwesome5 name="car-alt" size={48} color="#0099FF" style={styles.cardIcon}/>
                 
@@ -129,8 +178,9 @@ const ParkingScreen = () => {
             </View>
         ))}
 
-      </ScrollView>
-      {/* <BottomMenu /> Se necessário */}
+        </ScrollView>
+        <BottomMenu />
+      </View>
     </SafeAreaView>
   );
 };
@@ -138,9 +188,13 @@ const ParkingScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  mainContent: {
+    flex: 1,
+  },
   container: {
     padding: 20,
-    alignItems: 'center', // Centraliza os itens no container
+    paddingBottom: 120,
+    alignItems: 'center',
   },
   registerButton: {
     backgroundColor: '#0099FF',
@@ -193,6 +247,20 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: '#FF453A', // Vermelho
     borderRadius: 3,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#FFE5E5',
+    padding: 10,
+    borderRadius: 12,
+    zIndex: 10,
+    elevation: 2,
+    shadowColor: '#FF453A',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   cardIcon: {
     marginBottom: 12,

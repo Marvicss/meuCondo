@@ -5,22 +5,22 @@ import { useFocusEffect } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    Appbar,
-    Button,
-    Card,
-    Chip,
-    Text,
-    TextInput,
-    useTheme,
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  Text,
+  TextInput,
+  useTheme,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
@@ -263,7 +263,7 @@ export default function MoradorScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 40 },
+  container: { padding: 16, paddingBottom: 120 },
   form: { gap: 10 },
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   mainContent: {

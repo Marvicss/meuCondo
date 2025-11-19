@@ -240,10 +240,10 @@ const Home = () => {
 
         <Button
           mode="contained"
-          onPress={() => router.push('/reservas/sindico' as any)}
+          onPress={() => router.push('/parking-sindico' as any)}
           style={{ marginTop: 16 }}
         >
-          Reservas (Síndico)
+          Estacionamento (Síndico)
         </Button>
 
         <Button
