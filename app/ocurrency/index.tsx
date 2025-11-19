@@ -466,20 +466,12 @@ export default function OcorrenciasScreen() {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <>
-              <Text style={styles.headerTitle}>
-                {userType === 'ADMIN' ? 'Todas as Ocorrências' : 'Minhas Ocorrências'}
-              </Text>
               <NovaOcorrenciaInput onPublicar={handlePublicar} isPosting={isPosting} avatarUrl={currentUserAvatar} />
                 <View style={styles.headerContainerComSombra}>
                   <Text style={styles.headerTitle}>
                     {userType === 'ADMIN' ? 'Todas as Ocorrências' : 'Minhas Ocorrências'}
                   </Text>
                 </View>
-                <NovaOcorrenciaInput
-                  onPublicar={handlePublicar}
-                  isPosting={isPosting}
-                  avatarUrl={currentUserAvatar}
-                />
             </>
           }
           ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
