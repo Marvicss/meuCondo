@@ -29,7 +29,7 @@ const MORADOR_ROUTES = {
 
 const ADMIN_ROUTES = {
   home: '/home',
-  cash: '/prestacao-morador',
+  cash: '/addAccountability',
   notice: '/news-sindico',
   reservas: '/votation/sindico',
   parking: '/reservas/sindico',
