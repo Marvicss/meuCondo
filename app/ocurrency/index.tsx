@@ -5,23 +5,23 @@ import { Stack, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Keyboard,
-    ListRenderItemInfo,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Keyboard,
+  ListRenderItemInfo,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import {
-    Button,
-    Card,
-    Menu,
-    Text,
-    TextInput,
-    useTheme
+  Button,
+  Card,
+  Menu,
+  Text,
+  TextInput,
+  useTheme
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -139,7 +139,9 @@ const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
       />
       <Card.Content>
         <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text variant="bodyMedium" style={styles.texto}>{item.description}</Text>
+        <Text variant="bodyMedium" style={styles.texto}>
+          {item.description}
+        </Text>
       </Card.Content>
     </Card>
   );
@@ -257,7 +259,7 @@ export default function OcorrenciasScreen() {
   const fetchOcorrencias = async () => {
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = await AsyncStorage.getItem('token');
       if (!token) {
         router.replace('/login');
         return;
@@ -308,7 +310,10 @@ export default function OcorrenciasScreen() {
           if (!userResponse.ok) throw new Error();
           const userData: UserData = await userResponse.json();
 
-          const apartmentResponse = await fetch(`${API_URL}/apartments/${userData.apartmentId}`, { headers });
+          const apartmentResponse = await fetch(
+            `${API_URL}/apartments/${userData.apartmentId}`,
+            { headers }
+          );
           if (!apartmentResponse.ok) throw new Error();
           const apartmentData: ApartmentData = await apartmentResponse.json();
 
@@ -343,12 +348,15 @@ export default function OcorrenciasScreen() {
       });
 
       const enrichedData = await Promise.all(enrichedDataPromises);
-
-      setOcorrencias(enrichedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-
+      setOcorrencias(
+        enrichedData.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+      );
     } catch (error) {
-      console.error("Erro ao buscar ocorrências:", error);
-      Alert.alert("Erro", "Não foi possível carregar as ocorrências.");
+      console.error('Erro ao buscar ocorrências:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as ocorrências.');
     } finally {
       setLoading(false);
     }
@@ -363,31 +371,39 @@ export default function OcorrenciasScreen() {
     Keyboard.dismiss();
 
     try {
-      const token = await AsyncStorage.getItem("token");
+      const token = await AsyncStorage.getItem('token');
       if (!token) {
-        Alert.alert("Sessão expirada", "Faça o login novamente.");
+        Alert.alert('Sessão expirada', 'Faça o login novamente.');
         router.replace('/login');
         setIsPosting(false);
         return;
       }
 
       const headers = {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       };
 
       const decodedToken = jwtDecode<DecodedToken>(token);
       const userId = decodedToken.userId;
 
-      const userResponse = await fetch(`${API_URL}/users/${userId}`, { headers });
-      if (!userResponse.ok) throw new Error('Não foi possível encontrar os dados do usuário.');
+      const userResponse = await fetch(`${API_URL}/users/${userId}`, {
+        headers,
+      });
+      if (!userResponse.ok)
+        throw new Error('Não foi possível encontrar os dados do usuário.');
       const userData: UserData = await userResponse.json();
       const { apartmentId } = userData;
 
-      if (!apartmentId) throw new Error('Usuário não associado a um apartamento.');
+      if (!apartmentId)
+        throw new Error('Usuário não associado a um apartamento.');
 
-      const apartmentResponse = await fetch(`${API_URL}/apartments/${apartmentId}`, { headers });
-      if (!apartmentResponse.ok) throw new Error('Não foi possível encontrar os dados do apartamento.');
+      const apartmentResponse = await fetch(
+        `${API_URL}/apartments/${apartmentId}`,
+        { headers }
+      );
+      if (!apartmentResponse.ok)
+        throw new Error('Não foi possível encontrar os dados do apartamento.');
       const apartmentData: ApartmentData = await apartmentResponse.json();
       const { condominiumId } = apartmentData;
 
@@ -415,12 +431,14 @@ export default function OcorrenciasScreen() {
         throw new Error(serverMessage);
       }
 
-      Alert.alert("Sucesso!", "Sua ocorrência foi publicada.");
+      Alert.alert('Sucesso!', 'Sua ocorrência foi publicada.');
       await fetchOcorrencias();
-
     } catch (error: any) {
-      console.error("Erro ao publicar ocorrência:", error);
-      Alert.alert("Erro ao Publicar", error.message || "Não foi possível publicar a ocorrência. Tente novamente.");
+      console.error('Erro ao publicar ocorrência:', error);
+      Alert.alert(
+        'Erro ao Publicar',
+        error.message || 'Não foi possível publicar a ocorrência.'
+      );
     } finally {
       setIsPosting(false);
     }
@@ -448,10 +466,12 @@ export default function OcorrenciasScreen() {
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
             <>
-              <Text style={styles.headerTitle}>
-                {userType === 'ADMIN' ? 'Todas as Ocorrências' : 'Minhas Ocorrências'}
-              </Text>
               <NovaOcorrenciaInput onPublicar={handlePublicar} isPosting={isPosting} avatarUrl={currentUserAvatar} />
+                <View style={styles.headerContainerComSombra}>
+                  <Text style={styles.headerTitle}>
+                    {userType === 'ADMIN' ? 'Todas as Ocorrências' : 'Minhas Ocorrências'}
+                  </Text>
+                </View>
             </>
           }
           ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
@@ -462,12 +482,14 @@ export default function OcorrenciasScreen() {
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Nenhuma ocorrência encontrada.</Text>
+                <Text style={styles.emptyText}>
+                  Nenhuma ocorrência encontrada.
+                </Text>
               </View>
             ) : null
           }
         />
-      <BottomMenu />
+        <BottomMenu />
       </View>
     </SafeAreaView>
   );
@@ -490,12 +512,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 120,
   },
+  headerContainerComSombra: {
+    backgroundColor: '#F4F6F8',
+    paddingTop: 20,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1A1A1A',
-    marginTop: 20,
-    marginBottom: 20,
   },
   inputCard: {
     marginBottom: 24,
