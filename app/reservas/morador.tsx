@@ -5,22 +5,22 @@ import { useFocusEffect } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
+    ActivityIndicator,
+    Alert,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  Appbar,
-  Button,
-  Card,
-  Chip,
-  Text,
-  TextInput,
-  useTheme,
+    Appbar,
+    Button,
+    Card,
+    Chip,
+    Text,
+    TextInput,
+    useTheme,
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
@@ -234,7 +234,12 @@ export default function MoradorScreen() {
                 />
                 <Card.Content>
                   <Text variant="bodyMedium">
-                    {room.description ? room.description.split('[RESERVADO_EM:')[0].trim() : ''}
+                    {room.description 
+                      ? room.description
+                          .split('[RESERVADO_EM:')[0]
+                          .split('[IMG_SEED:')[0]
+                          .trim() 
+                      : ''}
                   </Text>
                 </Card.Content>
                 <Card.Actions>

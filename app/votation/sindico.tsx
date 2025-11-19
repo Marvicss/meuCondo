@@ -74,7 +74,7 @@ export default function VotationSindicoScreen() {
             await AsyncStorage.removeItem('token');
             return;
           }
-          console.log('Erro ao verificar usuário, continuando mesmo assim');
+          
         }
       } catch (error: any) {
         const status = error?.response?.status;
@@ -184,7 +184,6 @@ export default function VotationSindicoScreen() {
 
       try {
         // Tenta o endpoint correto do backend para buscar as votações
-        console.log('Enviando requisição com token:', token);
         const res = await api.get<any[]>(`/polls/condominium/${condoId}`, {
           headers: { 
             'Authorization': `Bearer ${token}`,
