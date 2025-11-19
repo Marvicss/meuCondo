@@ -1,33 +1,69 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
+import {
+  Appbar,
+  Button,
+  Text,
+  TextInput,
+  useTheme
+} from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+interface Condominium {
+  id: string;
+  name: string;
+}
 
 const AdicionarAvisoScreen = () => {
+  const theme = useTheme();
   const router = useRouter();
-  
 
-  const [titulo, setTitulo] = useState('');
+  // Removido estado 'titulo'
   const [descricao, setDescricao] = useState('');
-  const [categoria, setCategoria] = useState<string | null>(null);
-
+  const [categoria, setCategoria] = useState<string>('GENERAL');
+  const [loading, setLoading] = useState(false);
+  
+  const [condominios, setCondominios] = useState<Condominium[]>([]);
+  const [condominioSelecionado, setCondominioSelecionado] = useState<string>('');
 
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+  useEffect(() => {
+    const fetchCondominios = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch(`https://meu-condo.onrender.com/condominiums/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setCondominios(data);
+            setCondominioSelecionado(data[0].id);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao buscar condomínios:", error);
+      }
+    };
+    fetchCondominios();
+  }, []);
 
   const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
     setShowPicker(Platform.OS === 'ios');
@@ -42,13 +78,19 @@ const AdicionarAvisoScreen = () => {
   };
 
   const handlePublicar = async () => {
+    // Removida validação de titulo
+    if (!descricao.trim() || !categoria) {
+      Alert.alert('Erro', 'Por favor, preencha a descrição e selecione uma categoria.');
+      return;
+    }
     
-    if (!titulo.trim() || !descricao.trim() || !categoria) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
+    if (!condominioSelecionado) {
+      Alert.alert('Erro', 'Selecione um condomínio para publicar o aviso.');
       return;
     }
 
     try {
+      setLoading(true);
       const token = await AsyncStorage.getItem("token");
       if (!token) {
         Alert.alert("Sessão Expirada", "Por favor, faça o login novamente para continuar.");
@@ -57,12 +99,13 @@ const AdicionarAvisoScreen = () => {
       }
       
       const novoAviso = {
+        condominiumId: condominioSelecionado,
         type: categoria, 
         message: descricao,
-        title: titulo, 
+        // Como removemos o título, se o backend exigir um título, podemos usar:
+        // title: descricao.substring(0, 20) + "...", 
+        // Ou simplesmente não enviar nada se for opcional:
       };
-
-      console.log('Enviando para o backend:', novoAviso);
 
       const response = await fetch('https://meu-condo.onrender.com/news/', {
         method: 'POST',
@@ -85,44 +128,88 @@ const AdicionarAvisoScreen = () => {
     } catch (error: any) {
       console.error(error);
       Alert.alert('Erro', error.message || 'Não foi possível publicar o aviso.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.BackAction onPress={() => router.back()} color={theme.colors.onSurface} />
+        <Appbar.Content title="Novo Aviso" titleStyle={{ color: theme.colors.onSurface }} />
+      </Appbar.Header>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Text style={styles.label}>Título</Text>
-          <TextInput
-            style={styles.input}
-            value={titulo}
-            onChangeText={setTitulo}
-            placeholder="Ex: Manutenção do Elevador"
-            placeholderTextColor="#999"
-          />
+          
+          {/* Seletor de Condomínio */}
+          <View style={styles.inputGroup}>
+             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 5 }}>
+                Condomínio
+             </Text>
+             <View style={[
+                styles.pickerWrapper, 
+                { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outline 
+                }
+             ]}>
+                <Picker
+                  selectedValue={condominioSelecionado}
+                  onValueChange={(itemValue) => setCondominioSelecionado(itemValue)}
+                  style={{ color: theme.colors.onSurface }}
+                  dropdownIconColor={theme.colors.onSurface}
+                >
+                   <Picker.Item label="Selecione..." value="" color="#666"/>
+                   {condominios.map(condo => (
+                     <Picker.Item key={condo.id} label={condo.name} value={condo.id} color="#000000"/>
+                   ))}
+                </Picker>
+             </View>
+          </View>
 
-          <Text style={styles.label}>Descrição</Text>
+          {/* Campo Título foi REMOVIDO daqui */}
+
+          {/* Descrição */}
           <TextInput
-            style={[styles.input, styles.textArea]}
+            label="Descrição"
+            mode="outlined"
             value={descricao}
             onChangeText={setDescricao}
             placeholder="Descreva os detalhes do aviso aqui..."
-            placeholderTextColor="#999"
             multiline
             numberOfLines={4}
+            style={styles.input}
+            theme={{ colors: { background: theme.colors.surface } }}
           />
 
-          <Text style={styles.label}>Data</Text>
-          <View style={styles.dateRow}>
-            <TouchableOpacity style={styles.datePickerButton} onPress={() => showMode('date')}>
-              <Text style={styles.datePickerText}>{date.toLocaleDateString('pt-BR')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.datePickerButton} onPress={() => showMode('time')}>
-              <Text style={styles.datePickerText}>{date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
-            </TouchableOpacity>
+          {/* Data */}
+          <View style={styles.inputGroup}>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 5 }}>
+                Data e Hora
+             </Text>
+            <View style={styles.dateRow}>
+                <Button 
+                    mode="outlined" 
+                    onPress={() => showMode('date')} 
+                    style={{ flex: 1, marginRight: 8 }}
+                    textColor={theme.colors.onSurface}
+                >
+                    {date.toLocaleDateString('pt-BR')}
+                </Button>
+                <Button 
+                    mode="outlined" 
+                    onPress={() => showMode('time')} 
+                    style={{ flex: 1 }}
+                    textColor={theme.colors.onSurface}
+                >
+                    {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                </Button>
+            </View>
           </View>
 
           {showPicker && (
@@ -136,24 +223,45 @@ const AdicionarAvisoScreen = () => {
             />
           )}
 
-          <Text style={styles.label}>Categoria</Text>
-          {/* 2. Substituímos o RNPickerSelect pelo Picker dentro de uma View para estilização */}
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={categoria}
-              onValueChange={(itemValue) => setCategoria(itemValue)}
-            >
-              <Picker.Item label="Selecione uma categoria" value={null} />
-              <Picker.Item label="Urgente" value="urgente" />
-              <Picker.Item label="Manutenção" value="manutencao" />
-              <Picker.Item label="Eventos" value="eventos" />
-              <Picker.Item label="Geral" value="geral" />
-            </Picker>
+          {/* Categoria */}
+          <View style={styles.inputGroup}>
+             <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 5 }}>
+                Categoria
+             </Text>
+             <View style={[
+                styles.pickerWrapper, 
+                { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.outline 
+                }
+             ]}>
+                <Picker
+                  selectedValue={categoria}
+                  onValueChange={(itemValue) => setCategoria(itemValue)}
+                  style={{ color: theme.colors.onSurface }}
+                  dropdownIconColor={theme.colors.onSurface}
+                >
+                  <Picker.Item label="Geral" value="GENERAL" color="#000000"/>
+                  <Picker.Item label="Urgente" value="URGENT" color="#000000"/>
+                  <Picker.Item label="Manutenção" value="MAINTENANCE" color="#000000"/>
+                  <Picker.Item label="Eventos" value="EVENTS" color="#000000"/>
+                </Picker>
+             </View>
           </View>
 
-          <TouchableOpacity style={styles.publishButton} onPress={handlePublicar}>
-            <Text style={styles.publishButtonText}>Publicar</Text>
-          </TouchableOpacity>
+          <Button 
+            mode="contained" 
+            onPress={handlePublicar}
+            loading={loading}
+            disabled={loading}
+            style={styles.publishButton}
+            contentStyle={{ height: 50 }}
+            labelStyle={{ fontSize: 18, fontWeight: 'bold' }}
+            buttonColor="#0095FF"
+          >
+            Publicar
+          </Button>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -162,61 +270,30 @@ const AdicionarAvisoScreen = () => {
 
 // --- Estilos ---
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F4F5F7' },
-  container: { flexGrow: 1, padding: 20, backgroundColor: '#F4F5F7' },
-  label: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8, marginTop: 16 },
-  input: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#DDE3E9',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333',
+  container: { 
+    flexGrow: 1, 
+    padding: 20, 
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+  input: {
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
   },
   dateRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  datePickerButton: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#DDE3E9',
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginRight: 10, // Adicionado para espaçamento
-  },
-  datePickerText: {
-    fontSize: 16,
-    color: '#333',
-  },
   publishButton: {
-    backgroundColor: '#0095FF',
     borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 30,
+    marginTop: 20,
   },
-  publishButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-
-  pickerContainer: {
-    backgroundColor: 'white',
-    borderRadius: 8,
+  pickerWrapper: {
     borderWidth: 1,
-    borderColor: '#DDE3E9',
-    justifyContent: 'center', 
-    height: 50, 
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginTop: 4,
   },
 });
+
 export default AdicionarAvisoScreen;
