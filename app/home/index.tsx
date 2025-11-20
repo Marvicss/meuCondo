@@ -1,10 +1,11 @@
 import BottomMenu from '@/components/BottomMenu';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
 
@@ -13,16 +14,7 @@ type DecodedToken = { userId: string; email: string; userType: string; };
 type Customer = { id: string; fullName: string; username: string; email: string; phoneNumber: string; cpf: string; userType: string; createdAt: string; };
 type News = { id: string; condominiumId: string; message: string; type: string; createdAt: string; };
 type PartyRoom = { id: string; name: string; description: string; capacity: number; available: boolean; condominiumId: string; createdAt: string; updatedAt: string; };
-// Adicione o tipo para Votação
-type Votacao = { 
-  id: string; 
-  title: string; 
-  startDate: string; 
-  endDate: string; 
-  description: string; 
-  condominiumId: string;
-  createdAt: string; 
-};
+type Votacao = { id: string; title: string; startDate: string; endDate: string; description: string; condominiumId: string; createdAt: string; };
 
 const Home = () => {
   const theme = useTheme();
@@ -35,46 +27,135 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [condominiumId, setCondominiumId] = useState<string | null>(null);
 
-  // Função para garantir que temos o condominiumId
-  const ensureCondominiumId = useCallback(async () => {
-    // 1) tenta pegar do AsyncStorage
-    const storedKeys = ['condominiumId', 'condoId', 'condominioId'];
-    for (const key of storedKeys) {
-      const val = await AsyncStorage.getItem(key);
-      if (val) return val;
-    }
-    // 2) fallback: busca primeiro condomínio do usuário
-    const token = await AsyncStorage.getItem('token');
-    if (!token) return null;
-    try {
-      let list: any[] = [];
+  const ensureCondominiumId = useCallback(
+    async (token: string, apartmentId?: string | null) => {
+      if (!token || !apartmentId) return null;
       try {
-        const res = await api.get<any[]>('/condominiums', {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+        const aptResp = await api.get(`/apartments/${apartmentId}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        list = Array.isArray(res.data) ? res.data : [];
-      } catch (err: any) {
-        Alert.alert('Erro', 'Não foi possível buscar o condomínio.');
+        const condoId =
+          aptResp?.data?.condominiumId ||
+          aptResp?.data?.condominium?.id;
+        return condoId ? String(condoId) : null;
+      } catch {
         return null;
       }
-      if (list.length > 0) return list[0].id;
-    } catch (err) {
-      Alert.alert('Erro', 'Erro inesperado ao buscar condomínio.');
-    }
-    return null;
-  }, []);
+    },
+    []
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      const fetchData = async () => {
+        setLoading(true);
+        try {
+          const token = await AsyncStorage.getItem('token');
+            if (!token) {
+              router.replace('/login');
+              return;
+            }
+
+          const decoded: DecodedToken = jwtDecode(token);
+
+            // usuário
+          let apartmentId: string | null = null;
+          try {
+            const respUser = await api.get(`/users/${decoded.userId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const dataUser = respUser.data ?? null;
+            apartmentId = dataUser?.apartmentId || null;
+            if (alive) setUser(dataUser);
+          } catch {
+            if (alive) setUser(null);
+          }
+
+          // condomínio via apartmentId
+          const condoId =
+            condominiumId ??
+            (await ensureCondominiumId(token, apartmentId));
+          if (!condoId) {
+            if (alive) {
+              Alert.alert('Atenção','Não foi possível identificar o condomínio.');
+              setLatestNews(null);
+              setPartyRooms([]);
+              setVotacoes([]);
+            }
+            return;
+          }
+          if (!condominiumId) setCondominiumId(condoId);
+
+          // notícias
+          try {
+            const newsResp = await api.get(`/news/`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const arr = Array.isArray(newsResp.data) ? newsResp.data : [];
+            const filtered = arr.filter(n => String(n.condominiumId) === condoId);
+            const sorted = filtered.sort((a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            if (alive) setLatestNews(sorted[0] || null);
+          } catch {
+            if (alive) setLatestNews(null);
+          }
+
+          // salões
+          try {
+            const prResp = await api.get(`/partyrooms/`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const arr = Array.isArray(prResp.data) ? prResp.data : [];
+            const filtered = arr.filter(r => String(r.condominiumId) === condoId);
+            if (alive) setPartyRooms(filtered);
+          } catch {
+            if (alive) setPartyRooms([]);
+          }
+
+          // votações
+          try {
+            const pollsResp = await api.get(`/polls/condominium/${condoId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const raw = Array.isArray(pollsResp.data) ? pollsResp.data : [];
+            const mapped: Votacao[] = raw.map((p: any) => ({
+              id: String(p.id),
+              title: p.title ?? 'Votação',
+              description: p.description ?? '',
+              startDate: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+              endDate: p.endsAt ? new Date(p.endsAt).toISOString() : new Date().toISOString(),
+              condominiumId: p.condominiumId || condoId,
+              createdAt: p.createdAt || new Date().toISOString(),
+            }));
+            const now = new Date();
+            const active = mapped.filter(v => new Date(v.endDate) > now);
+            if (alive) setVotacoes(active);
+          } catch {
+            if (alive) setVotacoes([]);
+          }
+
+        } finally {
+          if (alive) setLoading(false);
+        }
+      };
+      fetchData();
+      return () => { alive = false; };
+    }, [ensureCondominiumId, router, condominiumId])
+  );
 
   if (loading) {
-    return <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" /></View>;
+    return (
+      <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}> 
-      {/* Cabeçalho com sombra, mantendo lógica da develop */}
-      <View style={[styles.headerContainerComSombra, { backgroundColor: theme.colors.background }]}> 
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.menuButton}
@@ -84,19 +165,17 @@ const Home = () => {
             <Feather name="menu" size={28} color={theme.colors.onSurface} />
           </TouchableOpacity>
         </View>
-      </View>
-      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}> 
-        {/* Aviso em destaque */}
-        <View style={[styles.newsCard, { backgroundColor: '#0099FF' }]}> 
+
+        <View style={[styles.newsCard, { backgroundColor: '#0099FF' }]}>
           <Text style={[styles.newsTitle, { color: '#fff' }]}>{latestNews?.message || 'Nenhum aviso disponível'}</Text>
-          <Text style={[styles.newsDate, { color: '#fff' }]}> 
+          <Text style={[styles.newsDate, { color: '#fff' }]}>
             {latestNews ? `Publicado em ${new Date(latestNews.createdAt).toLocaleDateString()}` : ''}
           </Text>
           <TouchableOpacity onPress={() => router.push('/notice')}>
             <Text style={[styles.newsLink, { color: '#fff' }]}>Ver mais avisos</Text>
           </TouchableOpacity>
         </View>
-        {/* Próxima reserva agendada */}
+
         <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próxima reserva agendada</Text>
         <FlatList
           data={partyRooms.filter(r => !r.available)}
@@ -105,25 +184,25 @@ const Home = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 12 }}
           ListEmptyComponent={
-            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}> 
+            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
               <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>Nenhuma reserva futura encontrada</Text>
             </View>
           }
           renderItem={({ item }) => (
-            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}> 
+            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
               <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>{item.name}</Text>
             </View>
           )}
         />
-        {/* Próximas votações */}
+
         <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próximas votações</Text>
         {votacoes.length === 0 ? (
-          <View style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}> 
+          <View style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}>
             <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface }]}>Nenhuma votação disponível</Text>
           </View>
         ) : (
           votacoes.map(v => (
-            <View key={v.id} style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}> 
+            <View key={v.id} style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}>
               <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface }]}>{v.title}</Text>
               <Text style={[styles.votacaoPeriodo, { color: theme.colors.onSurface }]}>
                 {`Período de votação: ${new Date(v.startDate).toLocaleDateString()} a ${new Date(v.endDate).toLocaleDateString()}`}
