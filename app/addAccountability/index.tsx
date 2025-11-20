@@ -143,26 +143,15 @@ export default function AddAccountability() {
     }
   }
 
-  return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "#fff" }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
-    >
-      <View style={styles.headerContainerComSombra}>
-        <Text style={styles.title}>Prestação de Conta</Text>
-      </View>
-      
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <View style={styles.container}>
-          <Text style={styles.label}>Título</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Digite o título"
-            placeholderTextColor="#888"
-          />
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 20}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <View style={styles.container}>
+          <Text style={styles.title}>Prestação de Contas</Text>
 
           <Text style={styles.label}>Valor</Text>
           <TextInput
@@ -233,52 +222,55 @@ export default function AddAccountability() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    paddingTop: 0, 
-    backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 24,
-    color: "#333",
-    fontWeight: "bold",
-  },
-  headerContainerComSombra: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 24,
-    paddingTop: 24, 
-    paddingBottom: 24, 
-    
-    // A Sombra
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  label: {
-    color: "#333",
-    marginTop: 16,
-    marginBottom: 4,
-    fontWeight: "bold",
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 16,
-    color: "#000",
-    elevation: 2, 
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1, // Erro do "D" removido
-    shadowRadius: 2,
-  },
-  pickerContainer: {
+  container: {
+    flex: 1,
+    padding: 24,
+    backgroundColor: "#fff", // Alterado para fundo branco
+  },
+  title: {
+    fontSize: 24,
+    color: "#333", // Alterado para texto escuro
+    fontWeight: "bold",
+    marginBottom: 24,
+    textAlign: "center", // <-- Centraliza o texto
+  },
+  label: {
+    color: "#333", // Alterado para texto escuro
+    marginTop: 16,
+    marginBottom: 4,
+    fontWeight: "bold",
+  },
+  input: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+    color: "#000",
+    elevation: 2, // Sombra leve Android
+    shadowColor: "#000", // Sombra leve iOS
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  pickerItem: {
+    color: "#000",
+  },
+  button: {
+    backgroundColor: "#0095FF", // Azul oficial do app
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  buttonText: {
+    textAlign: "center",
+    fontWeight: "bold",
+    color: "#FFFFFF", // Texto branco para dar contraste
+    fontSize: 16,
+  },
+  pickerContainer: {
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ccc",
@@ -290,20 +282,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     justifyContent: 'center',
-  },
-  pickerItem: {
-    color: "#000",
-  },
-  button: {
-    backgroundColor: "#F2C94C",
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 24,
-  },
-  buttonText: {
-    textAlign: "center",
-    fontWeight: "bold",
-    color: "#2F80ED",
-    fontSize: 16,
   },
 });
