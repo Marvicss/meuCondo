@@ -1,11 +1,11 @@
 // app/login/index.tsx
 
 import { API_URL } from "@/constants/envs";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -24,17 +24,43 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Verifica se já existe um token ao carregar a tela
+  useEffect(() => {
+    checkExistingToken();
+  }, []);
+
+  async function checkExistingToken() {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      if (token) {
+        // Se houver token, tenta decodificar e redirecionar
+        const decoded: { userType: string } = jwtDecode(token);
+
+        if (decoded.userType === "ADMIN") {
+          router.replace("/home/sindico");
+        } else {
+          router.replace("/home");
+        }
+      }
+    } catch (error) {
+      // Se houver erro (token inválido), remove o token
+      await AsyncStorage.removeItem("token");
+      console.log("Token inválido removido");
+    }
+  }
+
   async function handleLogin() {
     try {
-      console.log(`A url que esta sendo importada :`, API_URL)
-      const apiUrl = `${API_URL}/auth/login`
-      console.log("apiUrl: " , apiUrl)
+      console.log(`A url que esta sendo importada :`, API_URL);
+      const apiUrl = `${API_URL}/auth/login`;
+      console.log("apiUrl: ", apiUrl);
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      console.log(response.json)
+      console.log(response.json);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -44,12 +70,12 @@ export default function LoginScreen() {
 
       const data = await response.json();
       await AsyncStorage.setItem("token", data.token);
-      
+
       // Decodifica o token para verificar o tipo de usuário
       const decoded: { userType: string } = jwtDecode(data.token);
-      
+
       // Redireciona baseado no tipo de usuário
-      if (decoded.userType === 'ADMIN') {
+      if (decoded.userType === "ADMIN") {
         router.replace("/home/sindico");
       } else {
         router.replace("/home");
@@ -65,11 +91,16 @@ export default function LoginScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.container}>
           <Text style={styles.title}>Bem Vindo ao</Text>
           <Text style={styles.brand}>MeuCondo!</Text>
-          <Text style={styles.subtitle}>Transparência e organização para a vida em condomínio</Text>
+          <Text style={styles.subtitle}>
+            Transparência e organização para a vida em condomínio
+          </Text>
 
           <Text style={styles.formLabel}>Faça login para continuar</Text>
           <TextInput
@@ -91,7 +122,7 @@ export default function LoginScreen() {
               onChangeText={setPassword}
             />
             <TouchableOpacity
-              onPress={() => setShowPassword(v => !v)}
+              onPress={() => setShowPassword((v) => !v)}
               style={styles.eyeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel="Mostrar/ocultar senha"
@@ -116,9 +147,9 @@ export default function LoginScreen() {
           </Text>
 
           {/* ===== ALTERAÇÃO COM A ROTA CORRETA ===== */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.roleButton}
-            onPress={() => router.push('/login/sindico' as any)}
+            onPress={() => router.push("/login/sindico" as any)}
           >
             <Text style={styles.roleText}>Sou Síndico</Text>
           </TouchableOpacity>
@@ -127,7 +158,6 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -145,7 +175,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     color: "#fff",
     fontWeight: "900",
-    fontFamily: 'System',
+    fontFamily: "System",
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -204,13 +234,13 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   inputWrapper: {
-    position: 'relative',
+    position: "relative",
   },
   passwordInput: {
     paddingRight: 40,
   },
   eyeButton: {
-    position: 'absolute',
+    position: "absolute",
     right: 0,
     top: 6,
     padding: 6,
