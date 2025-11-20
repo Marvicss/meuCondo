@@ -238,22 +238,6 @@ const Home = () => {
           ))
         )}
 
-        <Button
-          mode="contained"
-          onPress={() => router.push('/parking-sindico' as any)}
-          style={{ marginTop: 16 }}
-        >
-          Estacionamento (Síndico)
-        </Button>
-
-        <Button
-          mode="contained"
-          onPress={() => router.push('/votation/sindico' as any)}
-          style={{ marginTop: 16 }}
-        >
-          Votações (Síndico)
-        </Button>
-
       </ScrollView>
       <BottomMenu />
     </SafeAreaView>
