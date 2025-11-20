@@ -1,12 +1,11 @@
-// app/login/index.tsx
-
-import { API_URL } from "@/constants/envs";
-import { Ionicons } from "@expo/vector-icons";
+import { API_URL, RECAPTCHA_SITE_KEY } from "@/constants/envs";
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -17,12 +16,21 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Recaptcha from "react-native-recaptcha-that-works";
+
+
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // reCAPTCHA
+  const recaptchaRef = useRef<any>(null);
+  const siteKey = RECAPTCHA_SITE_KEY;
+  const baseUrl = API_URL;
 
   // Verifica se já existe um token ao carregar a tela
   useEffect(() => {
@@ -32,49 +40,39 @@ export default function LoginScreen() {
   async function checkExistingToken() {
     try {
       const token = await AsyncStorage.getItem("token");
-
       if (token) {
-        // Se houver token, tenta decodificar e redirecionar
         const decoded: { userType: string } = jwtDecode(token);
-
         if (decoded.userType === "ADMIN") {
           router.replace("/home/sindico");
         } else {
           router.replace("/home");
         }
+        return;
       }
     } catch (error) {
-      // Se houver erro (token inválido), remove o token
       await AsyncStorage.removeItem("token");
       console.log("Token inválido removido");
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function handleLogin() {
+  async function doLoginWithCaptcha(captchaToken: string) {
     try {
-      console.log(`A url que esta sendo importada :`, API_URL);
-      const apiUrl = `${API_URL}/auth/login`;
-      console.log("apiUrl: ", apiUrl);
+      setLoading(true);
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, captchaToken }),
       });
-      console.log(response.json);
-
       if (!response.ok) {
         const errorData = await response.json();
         Alert.alert("Erro", errorData.message || "Falha no login");
         return;
       }
-
       const data = await response.json();
       await AsyncStorage.setItem("token", data.token);
-
-      // Decodifica o token para verificar o tipo de usuário
       const decoded: { userType: string } = jwtDecode(data.token);
-
-      // Redireciona baseado no tipo de usuário
       if (decoded.userType === "ADMIN") {
         router.replace("/home/sindico");
       } else {
@@ -83,7 +81,29 @@ export default function LoginScreen() {
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
       console.error(error);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  function openRecaptcha() {
+    recaptchaRef.current?.open();
+  }
+
+  function handleLogin() {
+    if (!email || !password) {
+      Alert.alert("Atenção", "Preencha email e senha");
+      return;
+    }
+    openRecaptcha();
+  }
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0095FF' }}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
   }
 
   return (
@@ -91,18 +111,14 @@ export default function LoginScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={styles.container}>
           <Text style={styles.title}>Bem Vindo ao</Text>
           <Text style={styles.brand}>MeuCondo!</Text>
-          <Text style={styles.subtitle}>
-            Transparência e organização para a vida em condomínio
-          </Text>
+          <Text style={styles.subtitle}>Transparência e organização para a vida em condomínio</Text>
 
           <Text style={styles.formLabel}>Faça login para continuar</Text>
+
           <TextInput
             placeholder="E-mail"
             style={styles.input}
@@ -112,6 +128,7 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
           />
+
           <View style={styles.inputWrapper}>
             <TextInput
               placeholder="Senha"
@@ -125,7 +142,6 @@ export default function LoginScreen() {
               onPress={() => setShowPassword((v) => !v)}
               style={styles.eyeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityLabel="Mostrar/ocultar senha"
             >
               <Ionicons
                 name={showPassword ? "eye-off" : "eye"}
@@ -141,18 +157,27 @@ export default function LoginScreen() {
 
           <Text style={styles.linkText}>
             Não tem uma conta?{" "}
-            <Text style={styles.link} onPress={() => router.push("/register")}>
-              Cadastre-se.
-            </Text>
+            <Text style={styles.link} onPress={() => router.push("/register")}>Cadastre-se.</Text>
           </Text>
 
-          {/* ===== ALTERAÇÃO COM A ROTA CORRETA ===== */}
           <TouchableOpacity
             style={styles.roleButton}
             onPress={() => router.push("/login/sindico" as any)}
           >
             <Text style={styles.roleText}>Sou Síndico</Text>
           </TouchableOpacity>
+
+          {/* ========================= reCAPTCHA ========================= */}
+          <Recaptcha
+            ref={recaptchaRef}
+            siteKey={siteKey}
+            baseUrl={baseUrl}
+            size="invisible"
+            onVerify={(token: string) => {
+              doLoginWithCaptcha(token);
+            }}
+            onExpire={() => Alert.alert("Erro", "O reCAPTCHA expirou, tente novamente")}
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
