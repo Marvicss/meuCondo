@@ -317,10 +317,9 @@ const styles = StyleSheet.create({
     marginTop: 4, 
   },
   button: {
-    backgroundColor: "#0095FF", // Azul oficial do app
-    paddingVertical: 12,
-    borderRadius: 8,
     marginTop: 24,
+    borderRadius: 8,
+    backgroundColor: "#0095FF", 
   },
   buttonText: {
     textAlign: "center",
