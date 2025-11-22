@@ -216,7 +216,7 @@ export default function MoradorScreen() {
 
             return (
               <Card key={room.id} style={{ backgroundColor: theme.colors.surface, marginTop: 16 }}>
-                <Card.Cover source={{ uri: `https://picsum.photos/seed/${room.id}/700/300` }} />
+                
                 <Card.Title
                   title={room.name}
                   subtitle={`Capacidade: ${room.capacity} pessoas`}
