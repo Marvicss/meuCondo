@@ -5,6 +5,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { Appbar, Button, Card, Chip, ProgressBar, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import BottomMenu from '@/components/BottomMenu';
 import api from '../services/api';
 
 const LEGACY_VOTE_STORAGE_KEY = 'userPollVotes';
@@ -458,14 +459,14 @@ export default function VotationMoradorScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header>
-        <Appbar.Content title="Votações" />
-      </Appbar.Header>
+       <Appbar.Header mode="center-aligned">
+         <Appbar.Content title="Votações" />
+       </Appbar.Header>
 
       {loading ? (
         <View style={styles.center}><Text>Carregando...</Text></View>
       ) : (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 100 }]}>
           {votations.length === 0 ? (
             <View style={styles.center}><Text>Nenhuma votação disponível.</Text></View>
           ) : (
@@ -557,6 +558,7 @@ export default function VotationMoradorScreen() {
           )}
         </ScrollView>
       )}
+      <BottomMenu />
     </SafeAreaView>
   );
 }
