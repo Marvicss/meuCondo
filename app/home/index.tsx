@@ -4,10 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Divider, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import api from '../services/api';
+import api from '../services/api'; // Caminho ajustado com alias
 
 // --- TIPAGENS ---
 type DecodedToken = { userId: string; email: string; userType: string; };
@@ -78,7 +78,6 @@ const Home = () => {
             (await ensureCondominiumId(token, apartmentId));
           if (!condoId) {
             if (alive) {
-              Alert.alert('Atenção','Não foi possível identificar o condomínio.');
               setLatestNews(null);
               setPartyRooms([]);
               setVotacoes([]);
@@ -148,7 +147,7 @@ const Home = () => {
   if (loading) {
     return (
       <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#0099FF" />
       </View>
     );
   }
@@ -156,6 +155,8 @@ const Home = () => {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
+        
+        {/* HEADER - Menu Hamburguer */}
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.menuButton}
@@ -164,51 +165,93 @@ const Home = () => {
           >
             <Feather name="menu" size={28} color={theme.colors.onSurface} />
           </TouchableOpacity>
+          <Text variant="titleLarge" style={{ marginLeft: 16, fontWeight: 'bold', color: theme.colors.onSurface }}>
+             Olá, {user?.fullName?.split(' ')[0] || 'Morador'}
+          </Text>
         </View>
 
+        {/* CARD DE AVISO IMPORTANTE */}
         <View style={[styles.newsCard, { backgroundColor: '#0099FF' }]}>
-          <Text style={[styles.newsTitle, { color: '#fff' }]}>{latestNews?.message || 'Nenhum aviso disponível'}</Text>
-          <Text style={[styles.newsDate, { color: '#fff' }]}>
-            {latestNews ? `Publicado em ${new Date(latestNews.createdAt).toLocaleDateString()}` : ''}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+             <Text variant="labelMedium" style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 4, textTransform: 'uppercase' }}>
+                Último Aviso
+             </Text>
+             <Feather name="bell" size={20} color="#fff" style={{ opacity: 0.8 }} />
+          </View>
+          
+          <Text style={[styles.newsTitle, { color: '#fff' }]}>
+             {latestNews?.message || 'Nenhum aviso disponível'}
           </Text>
-          <TouchableOpacity onPress={() => router.push('/notice')}>
-            <Text style={[styles.newsLink, { color: '#fff' }]}>Ver mais avisos</Text>
+          
+          <Text style={[styles.newsDate, { color: 'rgba(255,255,255,0.9)' }]}>
+            {latestNews ? `${new Date(latestNews.createdAt).toLocaleDateString('pt-BR')}` : ''}
+          </Text>
+          
+          <TouchableOpacity onPress={() => router.push('/notice')} style={{ alignSelf: 'flex-end', marginTop: 12 }}>
+            <Text style={[styles.newsLink, { color: '#fff' }]}>Ver todos</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próxima reserva agendada</Text>
+        {/* SEÇÃO DE RESERVAS */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Reservar Espaço</Text>
         <FlatList
           data={partyRooms.filter(r => !r.available)}
           keyExtractor={item => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12 }}
+          contentContainerStyle={{ gap: 12, paddingRight: 20 }}
           ListEmptyComponent={
-            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
-              <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>Nenhuma reserva futura encontrada</Text>
+            <View style={[styles.emptyStateCard, { backgroundColor: theme.colors.surface }]}>
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>Nenhum espaço disponível.</Text>
             </View>
           }
           renderItem={({ item }) => (
-            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
+            // ✅ AQUI ESTÁ O REDIRECIONAMENTO PARA RESERVAS
+            <TouchableOpacity 
+              style={[styles.reservaCard, { backgroundColor: theme.colors.surface }]}
+              onPress={() => router.push('/reservas/morador' as any)} // Rota para reservas
+            >
+              <View style={[styles.iconPlaceholder, { backgroundColor: '#E0F2FF' }]}>
+                 <Feather name="calendar" size={24} color="#0099FF" />
+              </View>
               <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>{item.name}</Text>
-            </View>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Disponibilidade</Text>
+            </TouchableOpacity>
           )}
         />
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próximas votações</Text>
+        {/* SEÇÃO DE VOTAÇÕES */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface, marginTop: 24 }]}>Votações em Aberto</Text>
         {votacoes.length === 0 ? (
-          <View style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}>
-            <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface }]}>Nenhuma votação disponível</Text>
+          <View style={[styles.emptyStateCard, { backgroundColor: theme.colors.surface, paddingVertical: 24 }]}>
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>Nenhuma votação ativa no momento.</Text>
           </View>
         ) : (
           votacoes.map(v => (
-            <View key={v.id} style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}>
-              <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface }]}>{v.title}</Text>
-              <Text style={[styles.votacaoPeriodo, { color: theme.colors.onSurface }]}>
-                {`Período de votação: ${new Date(v.startDate).toLocaleDateString()} a ${new Date(v.endDate).toLocaleDateString()}`}
+            // ✅ AQUI ESTÁ O REDIRECIONAMENTO PARA VOTAÇÃO
+            <TouchableOpacity 
+              key={v.id} 
+              style={[styles.votacaoCard, { backgroundColor: theme.colors.surface, borderTopColor: '#0099FF' }]}
+              onPress={() => router.push('/votation/morador' as any)} // Rota para votação
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                 <Feather name="check-circle" size={20} color="#0099FF" style={{ marginRight: 8 }} />
+                 <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface, flex: 1 }]}>{v.title}</Text>
+              </View>
+              
+              <Text style={[styles.votacaoDescricao, { color: theme.colors.onSurfaceVariant }]}>
+                 {v.description}
               </Text>
-              <Text style={[styles.votacaoDescricao, { color: theme.colors.onSurface }]}>{v.description}</Text>
-            </View>
+              
+              <Divider style={{ marginVertical: 12, backgroundColor: theme.colors.outlineVariant }} />
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                 <Text style={[styles.votacaoPeriodo, { color: theme.colors.outline }]}>
+                    Encerra em: {new Date(v.endDate).toLocaleDateString()}
+                 </Text>
+                 <Text style={{ color: '#0099FF', fontWeight: 'bold', fontSize: 12 }}>Votar Agora</Text>
+              </View>
+            </TouchableOpacity>
           ))
         )}
         
@@ -222,108 +265,111 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: {
-    padding: 16,
-    paddingTop: 0,
-    paddingBottom: 32,
-  },
-  headerContainerComSombra: {
-    width: '100%',
-    paddingHorizontal: 16,
+    padding: 20,
     paddingTop: 10,
-    paddingBottom: 80, // Aumentei para o BottomMenu não cobrir o conteúdo
-    zIndex: 10, // Garante que a sombra fique sobre o conteúdo
-    // Sombra
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 5,
+    paddingBottom: 40,
   },
+  
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 0,
-    justifyContent: 'flex-start',
+    marginBottom: 20,
   },
   menuButton: {
-    padding: 8,
+    padding: 4,
     borderRadius: 8,
   },
+
+  // Card de Aviso (Azul)
   newsCard: {
-    backgroundColor: '#0099FF',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 18,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    elevation: 4,
+    shadowColor: '#0099FF',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
   newsTitle: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
-    marginBottom: 8,
+    marginBottom: 4,
+    marginTop: 8,
+    lineHeight: 24,
   },
   newsDate: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 12,
   },
   newsLink: {
-    color: '#fff',
-    textAlign: 'right',
-    textDecorationLine: 'underline',
-    fontWeight: 'bold',
+    fontWeight: '600',
     fontSize: 14,
   },
+
+  // Títulos das Seções
   sectionTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginTop: 16,
-    marginBottom: 10,
-    color: '#222',
+    fontWeight: '600',
+    fontSize: 18,
+    marginBottom: 12,
   },
+
+  // Card Reserva (Horizontal)
   reservaCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    minWidth: 180,
+    width: 160,
     marginRight: 0,
-    elevation: 2,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0'
+  },
+  iconPlaceholder: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 12
   },
   reservaCardTitle: {
     fontWeight: 'bold',
-    fontSize: 15,
-    color: '#222',
+    fontSize: 14,
+    marginBottom: 4,
   },
+
+  // Card Votação (Vertical)
   votacaoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
-    borderTopWidth: 4,
-    borderTopColor: '#0099FF',
-    elevation: 2,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    borderTopWidth: 4, 
   },
   votacaoTitle: {
     fontWeight: 'bold',
-    fontSize: 15,
-    color: '#222',
-    marginBottom: 4,
+    fontSize: 16,
   },
   votacaoPeriodo: {
-    fontSize: 13,
-    color: '#222',
-    marginBottom: 2,
+    fontSize: 12,
   },
   votacaoDescricao: {
-    fontSize: 13,
-    color: '#444',
+    fontSize: 14,
+    lineHeight: 20,
   },
+
+  emptyStateCard: {
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    borderStyle: 'dashed'
+  }
 });
 
 export default Home;
