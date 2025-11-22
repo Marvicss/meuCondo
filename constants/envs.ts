@@ -6,3 +6,5 @@ export const API_URL_DEV = "http://localhost:3000"
 
 
 export const RECAPTCHA_SITE_KEY = "6LdnTRMsAAAAAAEzWoyIxbU_pKYaOWeXuqc8cDJq"
+
+export const GOOGLE_CLIENT_ID = "751577302464-p2sojfv9d27dku5n4no9femb3ha3hpv2.apps.googleusercontent.com"

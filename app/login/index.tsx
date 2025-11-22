@@ -1,4 +1,4 @@
-import { API_URL, RECAPTCHA_SITE_KEY } from "@/constants/envs";
+import { API_URL, GOOGLE_CLIENT_ID, RECAPTCHA_SITE_KEY } from "@/constants/envs";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -18,7 +18,15 @@ import {
 } from "react-native";
 import Recaptcha from "react-native-recaptcha-that-works";
 
+import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_USER_INFO_ENDPOINT = 'https://www.googleapis.com/oauth2/v2/userinfo';
+const REDIRECT_URI_GOOGLE = AuthSession.makeRedirectUri(); 
+console.log("REDIRECT_URI_GOOGLE:", REDIRECT_URI_GOOGLE);
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -27,41 +35,118 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // reCAPTCHA
   const recaptchaRef = useRef<any>(null);
   const siteKey = RECAPTCHA_SITE_KEY;
   const baseUrl = API_URL;
   const AUTH_USER_ID_KEY = 'authUserId';
 
-  // Verifica se já existe um token ao carregar a tela
+  // ========================= LOGIN SOCIAL GOOGLE HOOKS =========================
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: GOOGLE_CLIENT_ID,
+    redirectUri: REDIRECT_URI_GOOGLE,
+  });
+
+  // Lógica para lidar com a resposta do Google
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const accessToken = response.authentication?.accessToken || response.params?.access_token;
+      
+      if (accessToken) {
+        handleGoogleLogin(accessToken);
+      } else {
+        Alert.alert('Erro de Login', 'O token de acesso do Google não foi encontrado.');
+        setLoading(false);
+      }
+    } else if (response?.type === 'error') {
+      Alert.alert('Erro no Login', 'Não foi possível autenticar com o Google.');
+      setLoading(false);
+    }
+  }, [response]);
+  
+  // ==============================================================================
+  
+  
+  // ====================== 🚩 SEÇÃO CRÍTICA PARA O LOADING 🚩 ======================
+  // 
+  // VERIFICA SE JÁ EXISTE UM TOKEN AO CARREGAR A TELA
+  // Se este bloco estiver faltando, o 'checkExistingToken' nunca é chamado
+  // e o 'loading' fica 'true' indefinidamente.
   useEffect(() => {
     checkExistingToken();
   }, []);
+  // ==============================================================================
+
+
+  async function completeLoginFlow(token: string) {
+    await AsyncStorage.setItem("token", token);
+    const decoded: { userType: string; userId?: string } = jwtDecode(token);
+
+    if (decoded?.userId) {
+      await AsyncStorage.setItem(AUTH_USER_ID_KEY, String(decoded.userId));
+    }
+    if (decoded.userType === "ADMIN") {
+      router.replace("/home/sindico");
+    } else {
+      router.replace("/home");
+    }
+  }
 
   async function checkExistingToken() {
     try {
       const token = await AsyncStorage.getItem("token");
       if (token) {
-        const decoded: { userType: string; userId?: string } = jwtDecode(token);
-        if (decoded?.userId) {
-          await AsyncStorage.setItem(AUTH_USER_ID_KEY, String(decoded.userId));
-        }
-        if (decoded.userType === "ADMIN") {
-          router.replace("/home/sindico");
-        } else {
-          router.replace("/home");
-        }
-        return;
+        // Se encontrar o token, navega
+        await completeLoginFlow(token);
+        return; // Sai da função antes do finally, mas o completeLoginFlow já substituiu a tela
       }
     } catch (error) {
       await AsyncStorage.removeItem("token");
       await AsyncStorage.removeItem(AUTH_USER_ID_KEY);
       console.log("Token inválido removido");
     } finally {
-      setLoading(false);
+      // GARANTE QUE O LOADING É DESATIVADO se nenhum token for encontrado ou se houver erro
+      setLoading(false); 
     }
   }
 
+  async function handleGoogleLogin(accessToken: string) {
+    try {
+      setLoading(true);
+      const userInfoResponse = await fetch(GOOGLE_USER_INFO_ENDPOINT, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const userInfo = await userInfoResponse.json();
+      
+      const backendResponse = await fetch(`${API_URL}/auth/login/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: userInfo.email,
+          name: userInfo.name,
+          googleId: userInfo.id,
+        }),
+      });
+
+      if (!backendResponse.ok) {
+        const errorData = await backendResponse.json();
+        Alert.alert("Erro de Login Social", errorData.message || "Falha ao processar login social.");
+        return;
+      }
+
+      const data = await backendResponse.json();
+      await completeLoginFlow(data.token);
+
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível processar o login com Google.");
+      console.error("Erro no login social:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+  
   async function doLoginWithCaptcha(captchaToken: string) {
     try {
       setLoading(true);
@@ -76,16 +161,8 @@ export default function LoginScreen() {
         return;
       }
       const data = await response.json();
-      await AsyncStorage.setItem("token", data.token);
-      const decoded: { userType: string; userId?: string } = jwtDecode(data.token);
-      if (decoded?.userId) {
-        await AsyncStorage.setItem(AUTH_USER_ID_KEY, String(decoded.userId));
-      }
-      if (decoded.userType === "ADMIN") {
-        router.replace("/home/sindico");
-      } else {
-        router.replace("/home");
-      }
+      await completeLoginFlow(data.token);
+      
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");
       console.error(error);
@@ -105,6 +182,15 @@ export default function LoginScreen() {
     }
     openRecaptcha();
   }
+
+  function handleGoogleButtonPress() {
+    if (!request) {
+        Alert.alert("Atenção", "Configuração de Login Social indisponível.");
+        return;
+    }
+    promptAsync(); 
+  }
+
 
   if (loading) {
     return (
@@ -162,6 +248,17 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Entrar</Text>
           </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.button, styles.googleButton]} 
+            onPress={handleGoogleButtonPress}
+            disabled={!request || loading}
+          >
+            <View style={styles.googleButtonContent}>
+                <Ionicons name="logo-google" size={20} color="#0095FF" />
+                <Text style={[styles.buttonText, styles.googleButtonText]}>Entrar com Google</Text>
+            </View>
+          </TouchableOpacity>
 
           <Text style={styles.linkText}>
             Não tem uma conta?{" "}
@@ -175,7 +272,6 @@ export default function LoginScreen() {
             <Text style={styles.roleText}>Sou Síndico</Text>
           </TouchableOpacity>
 
-          {/* ========================= reCAPTCHA ========================= */}
           <Recaptcha
             ref={recaptchaRef}
             siteKey={siteKey}
@@ -193,6 +289,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... (seus estilos existentes)
   container: {
     flex: 1,
     backgroundColor: "#0095FF",
@@ -243,6 +340,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#0095FF",
     fontSize: 18,
+  },
+  googleButton: {
+    backgroundColor: "#fff",
+    marginTop: 8,
+  },
+  googleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleButtonText: {
+    marginLeft: 8,
+    color: '#0095FF',
   },
   linkText: {
     color: "#fff",
