@@ -31,6 +31,7 @@ export default function LoginScreen() {
   const recaptchaRef = useRef<any>(null);
   const siteKey = RECAPTCHA_SITE_KEY;
   const baseUrl = API_URL;
+  const AUTH_USER_ID_KEY = 'authUserId';
 
   // Verifica se já existe um token ao carregar a tela
   useEffect(() => {
@@ -41,7 +42,10 @@ export default function LoginScreen() {
     try {
       const token = await AsyncStorage.getItem("token");
       if (token) {
-        const decoded: { userType: string } = jwtDecode(token);
+        const decoded: { userType: string; userId?: string } = jwtDecode(token);
+        if (decoded?.userId) {
+          await AsyncStorage.setItem(AUTH_USER_ID_KEY, String(decoded.userId));
+        }
         if (decoded.userType === "ADMIN") {
           router.replace("/home/sindico");
         } else {
@@ -51,6 +55,7 @@ export default function LoginScreen() {
       }
     } catch (error) {
       await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem(AUTH_USER_ID_KEY);
       console.log("Token inválido removido");
     } finally {
       setLoading(false);
@@ -72,7 +77,10 @@ export default function LoginScreen() {
       }
       const data = await response.json();
       await AsyncStorage.setItem("token", data.token);
-      const decoded: { userType: string } = jwtDecode(data.token);
+      const decoded: { userType: string; userId?: string } = jwtDecode(data.token);
+      if (decoded?.userId) {
+        await AsyncStorage.setItem(AUTH_USER_ID_KEY, String(decoded.userId));
+      }
       if (decoded.userType === "ADMIN") {
         router.replace("/home/sindico");
       } else {

@@ -84,6 +84,15 @@ export default function SindicoScreen() {
       Alert.alert('Campo obrigatório', 'Informe a capacidade (número).');
       return;
     }
+    const capacityNum = Number(newCapacity);
+    if (capacityNum < 1) {
+      Alert.alert('Capacidade inválida', 'A capacidade deve ser no mínimo 1 pessoa.');
+      return;
+    }
+    if (capacityNum > 500) {
+      Alert.alert('Capacidade inválida', 'A capacidade máxima é de 500 pessoas. Para espaços maiores, entre em contato com o síndico.');
+      return;
+    }
     const condoId = await ensureCondominiumId();
     if (!condoId) {
       Alert.alert('Condomínio não identificado', 'Não foi possível determinar o condomínio do usuário.');
@@ -238,12 +247,37 @@ export default function SindicoScreen() {
       Alert.alert('Erro de Sessão', 'Faça login novamente para continuar.');
       return;
     }
+
+    // Verifica quantas pessoas já reservaram para esta data
+    const reservationsForDate = room.description.match(new RegExp(`\\[RESERVADO_EM:${selectedDate}\\]`, 'g'));
+    const currentReservations = reservationsForDate ? reservationsForDate.length : 0;
+    
+    if (currentReservations >= room.capacity) {
+      Alert.alert(
+        'Capacidade Esgotada', 
+        `O espaço "${room.name}" já atingiu sua capacidade máxima (${room.capacity} pessoas) para esta data.`
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       const baseDescription = room.description.split('[RESERVADO_EM:')[0].trim();
-      const newDescription = `${baseDescription} [RESERVADO_EM:${selectedDate}][USER_ID:${currentUserId}]`;
-      await api.put(`/partyrooms/${room.id}`, { ...room, available: false, description: newDescription });
-      Alert.alert('Sucesso', `Espaço reservado para ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-br')}.`);
+      // Adiciona nova reserva mantendo as anteriores
+      const newDescription = `${room.description} [RESERVADO_EM:${selectedDate}][USER_ID:${currentUserId}]`;
+      const isFullyBooked = (currentReservations + 1) >= room.capacity;
+      
+      await api.put(`/partyrooms/${room.id}`, { 
+        ...room, 
+        available: !isFullyBooked, 
+        description: newDescription 
+      });
+      
+      const vagasRestantes = room.capacity - (currentReservations + 1);
+      Alert.alert(
+        'Sucesso', 
+        `Espaço reservado para ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-br')}.\n${vagasRestantes > 0 ? `Vagas restantes: ${vagasRestantes}` : 'Capacidade esgotada!'}`
+      );
       await fetchAllData();
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível reservar o espaço.');
@@ -285,11 +319,12 @@ export default function SindicoScreen() {
               style={{ marginBottom: 8 }}
             />
             <TextInput
-              label="Capacidade (pessoas)"
+              label="Capacidade (1 a 500 pessoas)"
               mode="outlined"
               keyboardType="number-pad"
               value={newCapacity}
               onChangeText={setNewCapacity}
+              placeholder="Ex: 50"
               style={{ marginBottom: 8 }}
             />
             <TextInput
@@ -353,64 +388,119 @@ export default function SindicoScreen() {
         {filteredRooms.length === 0 && <Text style={{textAlign: 'center', padding: 20, color: theme.colors.onSurfaceVariant}}>Nenhum espaço para mostrar.</Text>}
 
         {filteredRooms.map((room) => {
-          const match = room.description.match(/\[RESERVADO_EM:(.*?)\]\[USER_ID:(.*?)\]/);
-          const isReserved = !room.available && !!match;
-          const imgMatch = room.description.match(/\[IMG_SEED:(.*?)\]/);
-          const imgSeed = imgMatch ? imgMatch[1] : room.id;
+          // Busca TODAS as reservas (pode haver múltiplas)
+          const allMatches = [...room.description.matchAll(/\[RESERVADO_EM:(.*?)\]\[USER_ID:(.*?)\]/g)];
+          const hasReservations = allMatches.length > 0;
+          const reservationsForSelectedDate = selectedDate 
+            ? allMatches.filter(m => m[1] === selectedDate)
+            : allMatches;
+          
+          // Gera URL de imagem temática usando Lorem Picsum com IDs curados e testados
+          const roomNameLower = room.name.toLowerCase();
+          let imageId = '1024'; // padrão - espaço moderno
+          
+          // IDs testados e validados para cada categoria
+          if (roomNameLower.includes('churrasqueira') || roomNameLower.includes('grill')) {
+            imageId = '1059'; // área outdoor/natureza
+          } else if (roomNameLower.includes('piscina') || roomNameLower.includes('pool')) {
+            imageId = '1080'; // água/paisagem
+          } else if (roomNameLower.includes('academia') || roomNameLower.includes('gym')) {
+            imageId = '1025'; // espaço moderno/estruturado
+          } else if (roomNameLower.includes('salão') || roomNameLower.includes('festa') || roomNameLower.includes('party')) {
+            imageId = '1043'; // ambiente elegante/interior
+          } else if (roomNameLower.includes('playground') || roomNameLower.includes('brinquedo')) {
+            imageId = '1036'; // espaço aberto/verde
+          } else if (roomNameLower.includes('quadra') || roomNameLower.includes('esporte') || roomNameLower.includes('sport')) {
+            imageId = '1050'; // espaço amplo/outdoor
+          } else if (roomNameLower.includes('sauna')) {
+            imageId = '1033'; // ambiente aconchegante
+          } else if (roomNameLower.includes('cinema') || roomNameLower.includes('movie')) {
+            imageId = '1000'; // espaço escuro/sofisticado
+          }
+          
+          const imageUrl = `https://picsum.photos/id/${imageId}/800/400`;
+          
           // Limpa a descrição removendo as tags internas
           const cleanDescription = room.description
-            .split('[RESERVADO_EM:')[0]
+            .replace(/\[RESERVADO_EM:.*?\]\[USER_ID:.*?\]/g, '')
             .replace(/\[IMG_SEED:.*?\]/g, '')
             .trim();
 
+          // Calcula vagas disponíveis
+          const totalReservations = selectedDate 
+            ? allMatches.filter(m => m[1] === selectedDate).length 
+            : 0;
+          const vagasDisponiveis = room.capacity - totalReservations;
+          const isFullyBooked = vagasDisponiveis <= 0;
+
           return (
             <Card key={room.id} style={{ backgroundColor: theme.colors.surface, marginTop: 16 }}>
-              <Card.Cover source={{ uri: `https://picsum.photos/seed/${imgSeed}/700/300` }} />
+              <Card.Cover source={{ uri: imageUrl }} />
               <Card.Title
                 title={room.name}
+                subtitle={`Capacidade: ${room.capacity} pessoas`}
                 titleStyle={{ color: theme.colors.onSurface }}
                 right={() => (
-                  <Chip
-                    icon={isReserved ? "close-circle" : "check-circle"}
-                    textStyle={{color: isReserved ? theme.colors.error : "#34C759" }}
-                    style={{ marginRight: 16, backgroundColor: isReserved ? theme.colors.errorContainer : '#E9F9EE' }}>
-                    {isReserved ? "Reservado" : "Disponível"}
-                  </Chip>
+                  <View style={{ marginRight: 16 }}>
+                    <Chip
+                      icon={hasReservations ? "account-multiple" : "check-circle"}
+                      textStyle={{color: hasReservations ? theme.colors.primary : "#34C759" }}
+                      style={{ backgroundColor: hasReservations ? theme.colors.primaryContainer : '#E9F9EE' }}>
+                      {hasReservations ? `${allMatches.length} reserva(s)` : "Disponível"}
+                    </Chip>
+                    {selectedDate && (
+                      <Chip
+                        icon={isFullyBooked ? "close-circle" : "check-circle"}
+                        textStyle={{color: isFullyBooked ? theme.colors.error : "#34C759", fontSize: 11 }}
+                        style={{ marginTop: 4, backgroundColor: isFullyBooked ? theme.colors.errorContainer : '#E9F9EE' }}>
+                        {isFullyBooked ? "Esgotado" : `${vagasDisponiveis} vaga(s)`}
+                      </Chip>
+                    )}
+                  </View>
                 )}
               />
               <Card.Content>
-                {isReserved && match ? (
+                <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant, marginBottom: 8}}>
+                  {cleanDescription}
+                </Text>
+                {reservationsForSelectedDate.length > 0 && (
                   <>
-                    <Text variant="bodyLarge" style={{fontWeight: 'bold', color: theme.colors.onSurface}}>Detalhes da Reserva:</Text>
-                    <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>Data: {new Date(match[1] + 'T00:00:00').toLocaleDateString('pt-br')}</Text>
-                    <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>Reservado por: {userCache[match[2]] || 'Buscando nome...'}</Text>
                     <Divider style={{marginVertical: 10}} />
+                    <Text variant="bodyLarge" style={{fontWeight: 'bold', color: theme.colors.onSurface, marginBottom: 8}}>
+                      {selectedDate ? 'Reservas para esta data:' : 'Todas as reservas:'}
+                    </Text>
+                    {reservationsForSelectedDate.map((match, idx) => (
+                      <View key={idx} style={{ marginBottom: 8, paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: theme.colors.primary }}>
+                        <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
+                          📅 {new Date(match[1] + 'T00:00:00').toLocaleDateString('pt-br')}
+                        </Text>
+                        <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>
+                          👤 {userCache[match[2]] || 'Carregando...'}
+                        </Text>
+                      </View>
+                    ))}
                   </>
-                ) : (
-                  <Text variant="bodyMedium" style={{color: theme.colors.onSurfaceVariant}}>{cleanDescription}</Text>
                 )}
               </Card.Content>
               <Card.Actions style={[styles.rowBetween, { flexWrap: 'wrap' }] }>
                 <Button
                   mode="contained"
                   onPress={() => handleClearReservation(room)}
-                  disabled={!isReserved || loading}
-                  buttonColor={isReserved ? theme.colors.errorContainer : undefined}
-                  textColor={isReserved ? theme.colors.onErrorContainer : undefined}
+                  disabled={!hasReservations || loading}
+                  buttonColor={hasReservations ? theme.colors.errorContainer : undefined}
+                  textColor={hasReservations ? theme.colors.onErrorContainer : undefined}
                   style={{ flex: 1, marginRight: 8 }}
                 >
-                  {isReserved ? "Liberar Reserva" : "Gerenciar"}
+                  {hasReservations ? "Liberar Todas" : "Gerenciar"}
                 </Button>
-                {!isReserved && (
-                  <Button
-                    mode="contained"
-                    onPress={() => handleReserve(room)}
-                    disabled={!selectedDate || loading}
-                    style={{ flex: 1 }}
-                  >
-                    {selectedDate ? `Reservar em ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-br')}` : 'Selecione uma data'}
-                  </Button>
-                )}
+                <Button
+                  mode="contained"
+                  onPress={() => handleReserve(room)}
+                  disabled={!selectedDate || isFullyBooked || loading}
+                  style={{ flex: 1, marginRight: 8 }}
+                >
+                  {!selectedDate ? 'Selecione data' : isFullyBooked ? 'Esgotado' : `Reservar (${vagasDisponiveis} vagas)`}
+                </Button>
                 <Button
                   mode="outlined"
                   icon="delete"
@@ -419,7 +509,7 @@ export default function SindicoScreen() {
                   textColor={theme.colors.error}
                   style={{ flex: 1 }}
                 >
-                  Excluir espaço
+                  Excluir
                 </Button>
               </Card.Actions>
             </Card>

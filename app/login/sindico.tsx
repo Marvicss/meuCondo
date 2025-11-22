@@ -4,17 +4,18 @@ import { API_URL } from "@/constants/envs";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function LoginSindicoScreen() {
@@ -39,6 +40,17 @@ export default function LoginSindicoScreen() {
 
       const data = await response.json();
       await AsyncStorage.setItem("token", data.token);
+      
+      // Persiste o userId do token
+      try {
+        const decoded: { userId?: string } = jwtDecode(data.token);
+        if (decoded?.userId) {
+          await AsyncStorage.setItem('authUserId', String(decoded.userId));
+        }
+      } catch {
+        // ignore decode errors
+      }
+      
       router.replace("/home");
     } catch (error) {
       Alert.alert("Erro", "Não foi possível conectar ao servidor");

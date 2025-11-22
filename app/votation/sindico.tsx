@@ -7,7 +7,6 @@ import {
   Appbar,
   Button,
   Card,
-  Chip,
   IconButton,
   Modal,
   Portal,
@@ -350,11 +349,6 @@ export default function VotationSindicoScreen() {
                   'pt-BR'
                 )} a ${new Date(v.endDate).toLocaleDateString('pt-BR')}`}
                 subtitleStyle={{ color: theme.colors.onSurfaceVariant }}
-                right={() => (
-                  <Chip style={{ marginRight: 8 }} icon="file-document">
-                    Anexos
-                  </Chip>
-                )}
               />
 
               <Card.Content>

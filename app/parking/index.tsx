@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Appbar, Button, Card, Chip, Text, useTheme } from 'react-native-paper';
+import { Appbar, Card, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // --- DEFINIÇÃO DE TIPOS ---
@@ -78,30 +78,12 @@ export default function ParkingLotPage() {
                   title={lot.name}
                   titleStyle={{ color: theme.colors.onSurface, fontWeight: 'bold' }}
                   left={(props) => <MaterialCommunityIcons {...props} name="car" color={theme.colors.primary} />}
-                  right={(props) => (
-                    <Chip 
-                      {...props}
-                      icon={lot.available ? 'check-circle' : 'close-circle'}
-                      textStyle={{ color: lot.available ? '#34C759' : theme.colors.error }}
-                      style={{ backgroundColor: lot.available ? '#E9F9EE' : theme.colors.errorContainer, marginRight: 8 }}
-                    >
-                      {lot.available ? 'Disponível' : 'Indisponível'}
-                    </Chip>
-                  )}
                 />
                 <Card.Content>
                   <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
                     {lot.description}
                   </Text>
                 </Card.Content>
-                <Card.Actions>
-                  <Button 
-                    mode="contained" 
-                    onPress={() => router.push(`/parking/${lot.id}`)}
-                  >
-                    Ver detalhes
-                  </Button>
-                </Card.Actions>
               </Card>
             ))
           ) : (

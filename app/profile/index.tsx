@@ -15,8 +15,8 @@ import {
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import api from "../services/api";
 import { API_URL } from "@/constants/envs";
+import api from "../services/api";
 
 ProfileScreen.options = {
   headerShown: false,
@@ -39,9 +39,6 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  // [ALTERAÇÃO 1] Estado para guardar o cargo
-  const [userRole, setUserRole] = useState<"ADMIN" | "USER">("USER");
 
   useEffect(() => {
     let mounted = true;
@@ -70,16 +67,9 @@ export default function ProfileScreen() {
         try {
           const parts = token.split(".");
           if (parts.length >= 2) {
-            // Seu código original de decodificação
             const payload = JSON.parse(
               Buffer.from(parts[1], "base64").toString("utf8"),
             );
-
-            // [ALTERAÇÃO 2] Pegar o cargo aqui dentro, aproveitando que já decodificou
-            if (mounted && payload.userType) {
-              console.log("Cargo identificado:", payload.userType);
-              setUserRole(payload.userType);
-            }
 
             const userId = payload.userId || payload.sub;
             if (userId) {
@@ -145,17 +135,6 @@ export default function ProfileScreen() {
     };
   }, [router]);
 
-  // [ALTERAÇÃO 3] Função de navegação do estacionamento
-  const handleParkingNavigation = () => {
-    if (userRole === "ADMIN") {
-      // Verifique se o nome do arquivo é exatamente 'parking-sindico.tsx' na pasta app
-      router.push("/parking-sindico" as any);
-    } else {
-      router.push("/parking" as any);
-    }
-  };
-
-  // ... MANTIDO IGUAL ...
   const handleSelectAvatar = async () => {
     try {
       const { status } =
@@ -306,9 +285,15 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("token");
+      const keysToRemove = [
+        'token',
+        'condominiumId',
+        'condoId',
+        'condominioId',
+        'authUserId',
+      ];
 
-      await AsyncStorage.clear();
+      await AsyncStorage.multiRemove(keysToRemove);
 
       setUser(null);
 
@@ -369,7 +354,6 @@ export default function ProfileScreen() {
 
       <View style={styles.divider} />
 
-      {/* MANTIDO EXATAMENTE COMO NO ORIGINAL */}
       <TouchableOpacity
         style={styles.item}
         onPress={() => router.push("/home" as any)}
@@ -390,8 +374,10 @@ export default function ProfileScreen() {
         <ThemedText style={styles.itemText}>Ocorrências</ThemedText>
       </TouchableOpacity>
 
-      {/* [ALTERAÇÃO 4] Apenas este botão mudou para usar a função */}
-      <TouchableOpacity style={styles.item} onPress={handleParkingNavigation}>
+      <TouchableOpacity
+        style={styles.item}
+        onPress={() => router.push("/parking" as any)}
+      >
         <View style={styles.iconWrapper}>
           <Feather name="truck" size={20} color="#0A84FF" />
         </View>
