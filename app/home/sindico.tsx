@@ -4,26 +4,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Divider, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import api from '../services/api';
+import api from '../services/api'; // Caminho ajustado com alias
 
-// --- DEFINIÇÃO DE TIPOS (sem mudanças) ---
+// --- TIPAGENS ---
 type DecodedToken = { userId: string; email: string; userType: string; };
 type Customer = { id: string; fullName: string; username: string; email: string; phoneNumber: string; cpf: string; userType: string; createdAt: string; };
 type News = { id: string; condominiumId: string; message: string; type: string; createdAt: string; };
 type PartyRoom = { id: string; name: string; description: string; capacity: number; available: boolean; condominiumId: string; createdAt: string; updatedAt: string; };
-// Adicione o tipo para Votação
-type Votacao = { 
-  id: string; 
-  title: string; 
-  startDate: string; 
-  endDate: string; 
-  description: string; 
-  condominiumId: string;
-  createdAt: string; 
-};
+type Votacao = { id: string; title: string; startDate: string; endDate: string; description: string; condominiumId: string; createdAt: string; };
 
 const Home = () => {
   const theme = useTheme();
@@ -36,107 +27,98 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [condominiumId, setCondominiumId] = useState<string | null>(null);
 
-  // Função para garantir que temos o condominiumId
-  const ensureCondominiumId = useCallback(async () => {
-    // 1) tenta pegar do AsyncStorage
-    const storedKeys = ['condominiumId', 'condoId', 'condominioId'];
-    for (const key of storedKeys) {
-      const val = await AsyncStorage.getItem(key);
-      if (val) return val;
-    }
-    // 2) fallback: busca primeiro condomínio do usuário
-    const token = await AsyncStorage.getItem('token');
-    if (!token) return null;
-    try {
-      let list: any[] = [];
+  const ensureCondominiumId = useCallback(
+    async (token: string, apartmentId?: string | null) => {
+      if (!token || !apartmentId) return null;
       try {
-        const res = await api.get<any[]>('/condominiums', {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+        const aptResp = await api.get(`/apartments/${apartmentId}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        list = Array.isArray(res.data) ? res.data : [];
-      } catch (err: any) {
-        if (err?.response?.status === 404) {
-          try {
-            const res2 = await api.get<any[]>('/condominiums/user', {
-              headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            list = Array.isArray(res2.data) ? res2.data : [];
-          } catch (innerErr) {
-            console.error('Erro ao buscar condomínios:', innerErr);
-            return null;
-          }
-        } else {
-          return null;
-        }
+        const condoId =
+          aptResp?.data?.condominiumId ||
+          aptResp?.data?.condominium?.id;
+        return condoId ? String(condoId) : null;
+      } catch {
+        return null;
       }
-      return list.length > 0 ? String(list[0].id) : null;
-    } catch {
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
-  // useFocusEffect para buscar todos os dados quando a tela é focada
   useFocusEffect(
     useCallback(() => {
+      let alive = true;
       const fetchData = async () => {
         setLoading(true);
         try {
-          const token = await AsyncStorage.getItem("token");
-          if (!token) {
-            router.replace('/login');
-            return;
-          }
+          const token = await AsyncStorage.getItem('token');
+            if (!token) {
+              router.replace('/login');
+              return;
+            }
 
           const decoded: DecodedToken = jwtDecode(token);
 
-          // Buscar dados individualmente para melhor controle de erros
-          const userResponse = await api.get(`/users/${decoded.userId}`);
-          setUser(userResponse.data ?? null);
+            // usuário
+          let apartmentId: string | null = null;
+          try {
+            const respUser = await api.get(`/users/${decoded.userId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const dataUser = respUser.data ?? null;
+            apartmentId = dataUser?.apartmentId || null;
+            if (alive) setUser(dataUser);
+          } catch {
+            if (alive) setUser(null);
+          }
 
-          // Obter condomínio do usuário usando a função auxiliar
-          let condoId = condominiumId ?? (await ensureCondominiumId());
+          // condomínio via apartmentId
+          const condoId =
+            condominiumId ??
+            (await ensureCondominiumId(token, apartmentId));
           if (!condoId) {
-            setLoading(false);
+            if (alive) {
+              setLatestNews(null);
+              setPartyRooms([]);
+              setVotacoes([]);
+            }
             return;
           }
           if (!condominiumId) setCondominiumId(condoId);
 
-          // Buscar notícias
+          // notícias
           try {
-            const newsResponse = await api.get('/news/');
-            const newsData = newsResponse.data ?? [];
-            if (Array.isArray(newsData) && newsData.length > 0) {
-              const sortedNews = newsData.sort((a, b) => 
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-              );
-              setLatestNews(sortedNews[0]);
-            }
-          } catch (newsError) {
-            console.error('Erro ao buscar notícias:', newsError);
+            const newsResp = await api.get(`/news/`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const arr = Array.isArray(newsResp.data) ? newsResp.data : [];
+            const filtered = arr.filter(n => String(n.condominiumId) === condoId);
+            const sorted = filtered.sort((a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            if (alive) setLatestNews(sorted[0] || null);
+          } catch {
+            if (alive) setLatestNews(null);
           }
 
-          // Buscar salões de festas
+          // salões
           try {
-            const partyRoomResponse = await api.get('/partyrooms/');
-            const partyRoomData = partyRoomResponse.data ?? [];
-            setPartyRooms(Array.isArray(partyRoomData) ? partyRoomData : []);
-          } catch (partyError) {
-            console.error('Erro ao buscar salões:', partyError);
-            setPartyRooms([]);
+            const prResp = await api.get(`/partyrooms/`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const arr = Array.isArray(prResp.data) ? prResp.data : [];
+            const filtered = arr.filter(r => String(r.condominiumId) === condoId);
+            if (alive) setPartyRooms(filtered);
+          } catch {
+            if (alive) setPartyRooms([]);
           }
 
-          // Buscar votações usando o endpoint correto
+          // votações
           try {
-            const votacoesResponse = await api.get(`/polls/condominium/${condoId}`);
-            const raw = Array.isArray(votacoesResponse.data) ? votacoesResponse.data : [];
-            
-            // Mapear para o formato esperado pela UI
+            const pollsResp = await api.get(`/polls/condominium/${condoId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const raw = Array.isArray(pollsResp.data) ? pollsResp.data : [];
             const mapped: Votacao[] = raw.map((p: any) => ({
               id: String(p.id),
               title: p.title ?? 'Votação',
@@ -146,39 +128,35 @@ const Home = () => {
               condominiumId: p.condominiumId || condoId,
               createdAt: p.createdAt || new Date().toISOString(),
             }));
-            
-            // Filtrar apenas votações ativas
-            const activeVotacoes = mapped.filter(v => {
-              const now = new Date();
-              const endDate = new Date(v.endDate);
-              return endDate > now;
-            });
-            
-            setVotacoes(activeVotacoes);
-          } catch (votacoesError: any) {
-            console.error('Erro ao buscar votações:', votacoesError?.response?.data || votacoesError?.message);
-            setVotacoes([]);
+            const now = new Date();
+            const active = mapped.filter(v => new Date(v.endDate) > now);
+            if (alive) setVotacoes(active);
+          } catch {
+            if (alive) setVotacoes([]);
           }
-          
-        } catch (err: any) {
-          console.error('Erro geral:', err);
-          Alert.alert("Erro", err?.response?.data?.message || "Falha na comunicação com o servidor.");
+
         } finally {
-          setLoading(false);
+          if (alive) setLoading(false);
         }
       };
       fetchData();
-    }, [router])
+      return () => { alive = false; };
+    }, [ensureCondominiumId, router, condominiumId])
   );
 
   if (loading) {
-    return <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" /></View>;
+    return (
+      <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color="#0099FF" />
+      </View>
+    );
   }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {/* Topo: Menu hamburger */}
+        
+        {/* HEADER - Olá Síndico */}
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.menuButton}
@@ -187,57 +165,99 @@ const Home = () => {
           >
             <Feather name="menu" size={28} color={theme.colors.onSurface} />
           </TouchableOpacity>
+          <Text variant="titleLarge" style={{ marginLeft: 16, fontWeight: 'bold', color: theme.colors.onSurface }}>
+             Olá, {user?.fullName?.split(' ')[0] || 'Síndico'}
+          </Text>
         </View>
 
-        {/* Aviso em destaque */}
+        {/* CARD DE AVISO IMPORTANTE */}
         <View style={[styles.newsCard, { backgroundColor: '#0099FF' }]}>
-          <Text style={[styles.newsTitle, { color: '#fff' }]}>{latestNews?.message || 'Nenhum aviso disponível'}</Text>
-          <Text style={[styles.newsDate, { color: '#fff' }]}>
-            {latestNews ? `Publicado em ${new Date(latestNews.createdAt).toLocaleDateString()}` : ''}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+             <Text variant="labelMedium" style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 4, textTransform: 'uppercase' }}>
+                Último Aviso Publicado
+             </Text>
+             <Feather name="bell" size={20} color="#fff" style={{ opacity: 0.8 }} />
+          </View>
+          
+          <Text style={[styles.newsTitle, { color: '#fff' }]}>
+             {latestNews?.message || 'Nenhum aviso recente'}
           </Text>
-          <TouchableOpacity onPress={() => router.push('/notice')}>
-            <Text style={[styles.newsLink, { color: '#fff' }]}>Ver mais avisos</Text>
+          
+          <Text style={[styles.newsDate, { color: 'rgba(255,255,255,0.9)' }]}>
+            {latestNews ? `${new Date(latestNews.createdAt).toLocaleDateString('pt-BR')}` : ''}
+          </Text>
+          
+          {/* ROTA 1: Gerenciar Avisos (news-sindico) */}
+          <TouchableOpacity onPress={() => router.push('/news-sindico' as any)} style={{ alignSelf: 'flex-end', marginTop: 12 }}>
+            <Text style={[styles.newsLink, { color: '#fff' }]}>Gerenciar avisos</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Próxima reserva agendada */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próxima reserva agendada</Text>
+        {/* SEÇÃO DE RESERVAS */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Reservar Espaço</Text>
         <FlatList
           data={partyRooms.filter(r => !r.available)}
           keyExtractor={item => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12 }}
+          contentContainerStyle={{ gap: 12, paddingRight: 20 }}
           ListEmptyComponent={
-            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
-              <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>Nenhuma reserva futura encontrada</Text>
+            <View style={[styles.emptyStateCard, { backgroundColor: theme.colors.surface }]}>
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>Nenhum espaço ocupado no momento.</Text>
             </View>
           }
           renderItem={({ item }) => (
-            <View style={[styles.reservaCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface }]}>
+            // ROTA 2: Gerenciar Reservas (reservas/sindico)
+            <TouchableOpacity 
+              style={[styles.reservaCard, { backgroundColor: theme.colors.surface }]}
+              onPress={() => router.push('/reservas/sindico' as any)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.iconPlaceholder, { backgroundColor: '#E0F2FF' }]}>
+                 <Feather name="calendar" size={24} color="#0099FF" />
+              </View>
               <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>{item.name}</Text>
-            </View>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Gerenciar</Text>
+            </TouchableOpacity>
           )}
         />
 
-        {/* Próximas votações */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Próximas votações</Text>
+        {/* SEÇÃO DE VOTAÇÕES */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface, marginTop: 24 }]}>Votações em Aberto</Text>
         {votacoes.length === 0 ? (
-          <View style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}>
-            <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface }]}>Nenhuma votação disponível</Text>
+          <View style={[styles.emptyStateCard, { backgroundColor: theme.colors.surface, paddingVertical: 24 }]}>
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>Nenhuma votação ativa no momento.</Text>
           </View>
         ) : (
           votacoes.map(v => (
-            <View key={v.id} style={[styles.votacaoCard, { backgroundColor: theme.colors.elevation?.level1 || theme.colors.surface, borderTopColor: '#0099FF' }]}>
-              <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface }]}>{v.title}</Text>
-              <Text style={[styles.votacaoPeriodo, { color: theme.colors.onSurface }]}>
-                {`Período de votação: ${new Date(v.startDate).toLocaleDateString()} a ${new Date(v.endDate).toLocaleDateString()}`}
+            // ROTA 3: Gerenciar Votação (votation/sindico)
+            <TouchableOpacity 
+              key={v.id} 
+              style={[styles.votacaoCard, { backgroundColor: theme.colors.surface, borderTopColor: '#0099FF' }]}
+              onPress={() => router.push('/votation/sindico' as any)}
+              activeOpacity={0.7}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                 <Feather name="edit-3" size={20} color="#0099FF" style={{ marginRight: 8 }} />
+                 <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface, flex: 1 }]}>{v.title}</Text>
+              </View>
+              
+              <Text style={[styles.votacaoDescricao, { color: theme.colors.onSurfaceVariant }]}>
+                 {v.description}
               </Text>
-              <Text style={[styles.votacaoDescricao, { color: theme.colors.onSurface }]}>{v.description}</Text>
-            </View>
+              
+              <Divider style={{ marginVertical: 12, backgroundColor: theme.colors.outlineVariant }} />
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                 <Text style={[styles.votacaoPeriodo, { color: theme.colors.outline }]}>
+                    Encerra em: {new Date(v.endDate).toLocaleDateString()}
+                 </Text>
+                 <Text style={{ color: '#0099FF', fontWeight: 'bold', fontSize: 12 }}>Gerenciar</Text>
+              </View>
+            </TouchableOpacity>
           ))
         )}
-
+        
       </ScrollView>
       <BottomMenu />
     </SafeAreaView>
@@ -248,94 +268,110 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: {
-    padding: 16,
-    paddingBottom: 120,
+    padding: 20,
+    paddingTop: 10,
+    paddingBottom: 40,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 18,
-    justifyContent: 'flex-start',
+    marginBottom: 20,
   },
   menuButton: {
-    padding: 8,
+    padding: 4,
     borderRadius: 8,
   },
+
+  // Card de Aviso
   newsCard: {
-    backgroundColor: '#0099FF',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 18,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    elevation: 4,
+    shadowColor: '#0099FF',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
   newsTitle: {
-    color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
-    marginBottom: 8,
+    marginBottom: 4,
+    marginTop: 8,
+    lineHeight: 24,
   },
   newsDate: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 8,
+    fontSize: 12,
   },
   newsLink: {
-    color: '#fff',
-    textAlign: 'right',
-    textDecorationLine: 'underline',
-    fontWeight: 'bold',
+    fontWeight: '600',
     fontSize: 14,
   },
+
+  // Títulos
   sectionTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginTop: 16,
-    marginBottom: 10,
-    color: '#222',
+    fontWeight: '600',
+    fontSize: 18,
+    marginBottom: 12,
   },
+
+  // Card Reserva
   reservaCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    minWidth: 180,
+    width: 160,
     marginRight: 0,
-    elevation: 2,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0'
+  },
+  iconPlaceholder: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 12
   },
   reservaCardTitle: {
     fontWeight: 'bold',
-    fontSize: 15,
-    color: '#222',
+    fontSize: 14,
+    marginBottom: 4,
   },
+
+  // Card Votação
   votacaoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 12,
-    borderTopWidth: 4,
-    borderTopColor: '#0099FF',
-    elevation: 2,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    borderTopWidth: 4, 
   },
   votacaoTitle: {
     fontWeight: 'bold',
-    fontSize: 15,
-    color: '#222',
-    marginBottom: 4,
+    fontSize: 16,
   },
   votacaoPeriodo: {
-    fontSize: 13,
-    color: '#222',
-    marginBottom: 2,
+    fontSize: 12,
   },
   votacaoDescricao: {
-    fontSize: 13,
-    color: '#444',
+    fontSize: 14,
+    lineHeight: 20,
   },
+
+  emptyStateCard: {
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    borderStyle: 'dashed'
+  }
 });
 
 export default Home;
