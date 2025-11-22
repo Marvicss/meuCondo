@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CustomHeader from '@/components/CustomHeader';
 import api from '../services/api';
+import BottomMenu from '@/components/BottomMenu';
 
 // TYPES
 type VoteOption = 'YES' | 'NO';
@@ -322,6 +323,7 @@ export default function VotationSindicoScreen() {
   }
 
   // RENDER
+  // RENDER
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* HEADER */}
@@ -331,7 +333,7 @@ export default function VotationSindicoScreen() {
       </CustomHeader>
 
       {/* LIST */}
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 100 }]}>
         <Button mode="contained" style={styles.newButton} onPress={handleOpenCreate} icon="plus">
           Nova Votação
         </Button>
@@ -505,9 +507,12 @@ export default function VotationSindicoScreen() {
           </ScrollView>
         </Modal>
       </Portal>
+      
+      <BottomMenu />
     </SafeAreaView>
   );
 }
+
 
 // STYLES
 const styles = StyleSheet.create({
