@@ -156,7 +156,7 @@ const Home = () => {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
         
-        {/* HEADER - Olá Síndico */}
+        {/* HEADER - Menu Hamburguer */}
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.menuButton}
@@ -166,7 +166,7 @@ const Home = () => {
             <Feather name="menu" size={28} color={theme.colors.onSurface} />
           </TouchableOpacity>
           <Text variant="titleLarge" style={{ marginLeft: 16, fontWeight: 'bold', color: theme.colors.onSurface }}>
-             Olá, {user?.fullName?.split(' ')[0] || 'Síndico'}
+             Olá, {user?.fullName?.split(' ')[0] || 'Morador'}
           </Text>
         </View>
 
@@ -174,22 +174,21 @@ const Home = () => {
         <View style={[styles.newsCard, { backgroundColor: '#0099FF' }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
              <Text variant="labelMedium" style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 4, textTransform: 'uppercase' }}>
-                Último Aviso Publicado
+                Último Aviso
              </Text>
              <Feather name="bell" size={20} color="#fff" style={{ opacity: 0.8 }} />
           </View>
           
           <Text style={[styles.newsTitle, { color: '#fff' }]}>
-             {latestNews?.message || 'Nenhum aviso recente'}
+             {latestNews?.message || 'Nenhum aviso disponível'}
           </Text>
           
           <Text style={[styles.newsDate, { color: 'rgba(255,255,255,0.9)' }]}>
             {latestNews ? `${new Date(latestNews.createdAt).toLocaleDateString('pt-BR')}` : ''}
           </Text>
           
-          {/* ROTA 1: Gerenciar Avisos (news-sindico) */}
-          <TouchableOpacity onPress={() => router.push('/news-sindico' as any)} style={{ alignSelf: 'flex-end', marginTop: 12 }}>
-            <Text style={[styles.newsLink, { color: '#fff' }]}>Gerenciar avisos</Text>
+          <TouchableOpacity onPress={() => router.push('/notice')} style={{ alignSelf: 'flex-end', marginTop: 12 }}>
+            <Text style={[styles.newsLink, { color: '#fff' }]}>Ver todos</Text>
           </TouchableOpacity>
         </View>
 
@@ -203,21 +202,20 @@ const Home = () => {
           contentContainerStyle={{ gap: 12, paddingRight: 20 }}
           ListEmptyComponent={
             <View style={[styles.emptyStateCard, { backgroundColor: theme.colors.surface }]}>
-              <Text style={{ color: theme.colors.onSurfaceVariant }}>Nenhum espaço ocupado no momento.</Text>
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>Nenhum espaço disponível.</Text>
             </View>
           }
           renderItem={({ item }) => (
-            // ROTA 2: Gerenciar Reservas (reservas/sindico)
+            // ✅ AQUI ESTÁ O REDIRECIONAMENTO PARA RESERVAS
             <TouchableOpacity 
               style={[styles.reservaCard, { backgroundColor: theme.colors.surface }]}
-              onPress={() => router.push('/reservas/sindico' as any)}
-              activeOpacity={0.7}
+              onPress={() => router.push('/reservas/morador' as any)} // Rota para reservas
             >
               <View style={[styles.iconPlaceholder, { backgroundColor: '#E0F2FF' }]}>
                  <Feather name="calendar" size={24} color="#0099FF" />
               </View>
               <Text style={[styles.reservaCardTitle, { color: theme.colors.onSurface }]}>{item.name}</Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Gerenciar</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Disponibilidade</Text>
             </TouchableOpacity>
           )}
         />
@@ -230,15 +228,14 @@ const Home = () => {
           </View>
         ) : (
           votacoes.map(v => (
-            // ROTA 3: Gerenciar Votação (votation/sindico)
+            // ✅ AQUI ESTÁ O REDIRECIONAMENTO PARA VOTAÇÃO
             <TouchableOpacity 
               key={v.id} 
               style={[styles.votacaoCard, { backgroundColor: theme.colors.surface, borderTopColor: '#0099FF' }]}
-              onPress={() => router.push('/votation/sindico' as any)}
-              activeOpacity={0.7}
+              onPress={() => router.push('/votation/morador' as any)} // Rota para votação
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                 <Feather name="edit-3" size={20} color="#0099FF" style={{ marginRight: 8 }} />
+                 <Feather name="check-circle" size={20} color="#0099FF" style={{ marginRight: 8 }} />
                  <Text style={[styles.votacaoTitle, { color: theme.colors.onSurface, flex: 1 }]}>{v.title}</Text>
               </View>
               
@@ -252,7 +249,7 @@ const Home = () => {
                  <Text style={[styles.votacaoPeriodo, { color: theme.colors.outline }]}>
                     Encerra em: {new Date(v.endDate).toLocaleDateString()}
                  </Text>
-                 <Text style={{ color: '#0099FF', fontWeight: 'bold', fontSize: 12 }}>Gerenciar</Text>
+                 <Text style={{ color: '#0099FF', fontWeight: 'bold', fontSize: 12 }}>Votar Agora</Text>
               </View>
             </TouchableOpacity>
           ))
@@ -272,6 +269,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 40,
   },
+  
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -282,7 +280,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  // Card de Aviso
+  // Card de Aviso (Azul)
   newsCard: {
     borderRadius: 20,
     padding: 20,
@@ -308,14 +306,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Títulos
+  // Títulos das Seções
   sectionTitle: {
     fontWeight: '600',
     fontSize: 18,
     marginBottom: 12,
   },
 
-  // Card Reserva
+  // Card Reserva (Horizontal)
   reservaCard: {
     borderRadius: 16,
     padding: 16,
@@ -339,7 +337,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  // Card Votação
+  // Card Votação (Vertical)
   votacaoCard: {
     borderRadius: 16,
     padding: 16,

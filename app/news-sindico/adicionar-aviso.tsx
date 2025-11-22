@@ -1,45 +1,48 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {
   Appbar,
-  Button,
   Text,
   TextInput,
   useTheme
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SvgXml } from 'react-native-svg';
 
 interface Condominium {
   id: string;
   name: string;
 }
 
+// --- Ícone SVG para o botão (Check) ---
+const IconCheck = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+`;
+
 const AdicionarAvisoScreen = () => {
   const theme = useTheme();
   const router = useRouter();
 
-  // Removido estado 'titulo'
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState<string>('GENERAL');
   const [loading, setLoading] = useState(false);
   
   const [condominios, setCondominios] = useState<Condominium[]>([]);
   const [condominioSelecionado, setCondominioSelecionado] = useState<string>('');
-
-  const [date, setDate] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
   useEffect(() => {
     const fetchCondominios = async () => {
@@ -65,20 +68,7 @@ const AdicionarAvisoScreen = () => {
     fetchCondominios();
   }, []);
 
-  const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowPicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
-  };
-
-  const showMode = (currentMode: 'date' | 'time') => {
-    setShowPicker(true);
-    setPickerMode(currentMode);
-  };
-
   const handlePublicar = async () => {
-    // Removida validação de titulo
     if (!descricao.trim() || !categoria) {
       Alert.alert('Erro', 'Por favor, preencha a descrição e selecione uma categoria.');
       return;
@@ -102,9 +92,6 @@ const AdicionarAvisoScreen = () => {
         condominiumId: condominioSelecionado,
         type: categoria, 
         message: descricao,
-        // Como removemos o título, se o backend exigir um título, podemos usar:
-        // title: descricao.substring(0, 20) + "...", 
-        // Ou simplesmente não enviar nada se for opcional:
       };
 
       const response = await fetch('https://meu-condo.onrender.com/news/', {
@@ -133,11 +120,14 @@ const AdicionarAvisoScreen = () => {
     }
   };
 
+  const primaryColor = '#0095FF';
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      {/* Header Centralizado */}
+      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => router.back()} color={theme.colors.onSurface} />
-        <Appbar.Content title="Novo Aviso" titleStyle={{ color: theme.colors.onSurface }} />
+        <Appbar.Content title="Novo Aviso" titleStyle={{ color: theme.colors.onSurface, fontWeight: '500' }} />
       </Appbar.Header>
 
       <KeyboardAvoidingView
@@ -146,7 +136,6 @@ const AdicionarAvisoScreen = () => {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           
-          {/* Seletor de Condomínio */}
           <View style={styles.inputGroup}>
              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 5 }}>
                 Condomínio
@@ -172,9 +161,6 @@ const AdicionarAvisoScreen = () => {
              </View>
           </View>
 
-          {/* Campo Título foi REMOVIDO daqui */}
-
-          {/* Descrição */}
           <TextInput
             label="Descrição"
             mode="outlined"
@@ -187,43 +173,8 @@ const AdicionarAvisoScreen = () => {
             theme={{ colors: { background: theme.colors.surface } }}
           />
 
-          {/* Data */}
-          <View style={styles.inputGroup}>
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 5 }}>
-                Data e Hora
-             </Text>
-            <View style={styles.dateRow}>
-                <Button 
-                    mode="outlined" 
-                    onPress={() => showMode('date')} 
-                    style={{ flex: 1, marginRight: 8 }}
-                    textColor={theme.colors.onSurface}
-                >
-                    {date.toLocaleDateString('pt-BR')}
-                </Button>
-                <Button 
-                    mode="outlined" 
-                    onPress={() => showMode('time')} 
-                    style={{ flex: 1 }}
-                    textColor={theme.colors.onSurface}
-                >
-                    {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                </Button>
-            </View>
-          </View>
+          {/* Data e Hora removidos daqui */}
 
-          {showPicker && (
-            <DateTimePicker
-              testID="dateTimePicker"
-              value={date}
-              mode={pickerMode}
-              is24Hour={true}
-              display="default"
-              onChange={onChangeDate}
-            />
-          )}
-
-          {/* Categoria */}
           <View style={styles.inputGroup}>
              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 5 }}>
                 Categoria
@@ -249,18 +200,22 @@ const AdicionarAvisoScreen = () => {
              </View>
           </View>
 
-          <Button 
-            mode="contained" 
-            onPress={handlePublicar}
-            loading={loading}
-            disabled={loading}
-            style={styles.publishButton}
-            contentStyle={{ height: 50 }}
-            labelStyle={{ fontSize: 18, fontWeight: 'bold' }}
-            buttonColor="#0095FF"
+          {/* Botão Publicar Customizado */}
+          <TouchableOpacity 
+              style={[styles.publishButtonCustom, { backgroundColor: primaryColor, opacity: loading ? 0.7 : 1 }]} 
+              onPress={handlePublicar}
+              activeOpacity={0.9}
+              disabled={loading}
           >
-            Publicar
-          </Button>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <SvgXml xml={IconCheck} width="20" height="20" style={{ marginRight: 8 }} />
+                <Text style={styles.publishButtonTextCustom}>Publicar</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
         </ScrollView>
       </KeyboardAvoidingView>
@@ -268,7 +223,6 @@ const AdicionarAvisoScreen = () => {
   );
 };
 
-// --- Estilos ---
 const styles = StyleSheet.create({
   container: { 
     flexGrow: 1, 
@@ -280,19 +234,30 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 16,
   },
-  dateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  publishButton: {
-    borderRadius: 12,
-    marginTop: 20,
-  },
   pickerWrapper: {
     borderWidth: 1,
     borderRadius: 4,
     overflow: 'hidden',
     marginTop: 4,
+  },
+  publishButtonCustom: {
+    borderRadius: 30, 
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 20,
+    elevation: 2, 
+    shadowColor: '#0095FF',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  publishButtonTextCustom: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500', 
   },
 });
 
