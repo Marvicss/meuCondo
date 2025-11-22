@@ -1,3 +1,4 @@
+import BottomMenu from '@/components/BottomMenu';
 import CustomHeader from '@/components/CustomHeader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
@@ -435,7 +436,7 @@ export default function SindicoScreen() {
 
           return (
             <Card key={room.id} style={{ backgroundColor: theme.colors.surface, marginTop: 16 }}>
-              <Card.Cover source={{ uri: imageUrl }} />
+              
               <Card.Title
                 title={room.name}
                 subtitle={`Capacidade: ${room.capacity} pessoas`}
@@ -482,7 +483,7 @@ export default function SindicoScreen() {
                   </>
                 )}
               </Card.Content>
-              <Card.Actions style={[styles.rowBetween, { flexWrap: 'wrap' }] }>
+              <Card.Actions style={[styles.cardActions, { flexWrap: 'wrap' }] }>
                 <Button
                   mode="contained"
                   onPress={() => handleClearReservation(room)}
@@ -516,12 +517,35 @@ export default function SindicoScreen() {
           );
         })}
       </ScrollView>
+        <BottomMenu />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 40 },
-  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  // Ajuste o paddingBottom para a altura do BottomMenu para que o conteúdo não fique escondido
+  container: { padding: 16, paddingBottom: 70 }, 
+  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  // Estilo principal para garantir que ScrollView (flex:1) e BottomMenu (fixo embaixo) funcionem juntos
+  mainContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  cardActions: { 
+    padding: 8, 
+    justifyContent: 'space-between',
+    flexWrap: 'wrap', // Permite que os botões quebrem a linha
+  },
+  actionButton: {
+    flexShrink: 1, 
+    flexGrow: 1,
+    minWidth: '30%', 
+    marginTop: 8,
+  },
+  reservationItem: { 
+    marginBottom: 8, 
+    paddingLeft: 8, 
+    borderLeftWidth: 2, 
+    borderLeftColor: '#4CAF50' // Cor verde para destaque da reserva
+  }
 });
