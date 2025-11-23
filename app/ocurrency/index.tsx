@@ -26,7 +26,7 @@ import {
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// --- TIPOS (Mantidos) ---
+// --- TIPOS ---
 type Ocorrencia = {
   id: string;
   title: string;
@@ -101,9 +101,32 @@ const formatAuthorName = (fullName: string): string => {
   return `${parts[0]} ${parts[parts.length - 1]}`;
 };
 
+// Agora retorna um par de cores: fundo claro (bg) e texto escuro (text)
+const getCriticalityColors = (criticality: string) => {
+  const level = criticality?.toLowerCase() || 'baixa'; 
+
+  switch (level) {
+    case 'alta': case 'alto': case 'high':
+      // Vermelho Moderno: Fundo pálido, texto forte
+      return { bg: '#FEF2F2', text: '#DC2626', label: 'Alta' }; 
+    case 'media': case 'médio': case 'medio': case 'medium':
+      // Laranja Moderno
+      return { bg: '#FFF7ED', text: '#C2410C', label: 'Média' };
+    case 'baixa': case 'baixo': case 'low':
+      // Verde Moderno
+      return { bg: '#F0FDF4', text: '#15803D', label: 'Baixa' };
+    default:
+      // Cinza Neutro
+      return { bg: '#F3F4F6', text: '#374151', label: 'Desconhecida' };
+  }
+};
+
 // --- COMPONENTES DE UI ---
 
 const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
+  // Pega as cores de fundo (bg) e texto (text)
+  const { bg, text, label } = getCriticalityColors(item.criticality);
+
   return (
     <Card style={styles.cardClean}>
       <View style={styles.cardContentWrapper}>
@@ -118,7 +141,9 @@ const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
                   )}
                   <View style={{ marginLeft: 10 }}>
                       <Text style={styles.authorName}>{formatAuthorName(item.authorName)}</Text>
-                      <Text style={styles.aptInfo}>Apt {item.apartmentNumber}</Text>
+                      <Text style={styles.aptInfo}>
+                        Apt {item.apartmentNumber} • {getTranslatedType(item.type)}
+                      </Text>
                   </View>
               </View>
               <Text style={styles.timeAgo}>{formatTimeAgo(item.createdAt)}</Text>
@@ -129,9 +154,12 @@ const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
           <Text style={styles.cardTitle}>{item.title}</Text>
           <Text style={styles.cardDesc}>{item.description}</Text>
 
-          <View style={{ flexDirection: 'row', marginTop: 12 }}>
-               <View style={styles.typeBadge}>
-                  <Text style={styles.typeText}>{getTranslatedType(item.type)}</Text>
+          {/* CHIP DE CRITICIDADE MODERNO E CLEAN */}
+          <View style={{ flexDirection: 'row', marginTop: 16 }}>
+               <View style={[styles.criticalityBadge, { backgroundColor: bg }]}>
+                  {/* Um pequeno ponto colorido antes do texto para um visual premium */}
+                  <View style={[styles.criticalityDot, { backgroundColor: text }]} />
+                  <Text style={[styles.criticalityText, { color: text }]}>Criticidade {label}</Text>
                </View>
           </View>
       </View>
@@ -382,19 +410,16 @@ export default function OcorrenciasScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: '#F8F9FA' }]}>
-      {/* Remove header padrão do Expo */}
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* HEADER PERSONALIZADO */}
       <View style={styles.customHeader}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-           {/* COR DO BOTÃO VOLTAR */}
            <Feather name="chevron-left" size={28} color="#1A1A1A" />
         </TouchableOpacity>
         
         <Text style={styles.headerTitleText}>Ocorrências</Text>
         
-        {/* View vazia para balancear o título no centro */}
         <View style={styles.backButton} />
       </View>
 
@@ -574,17 +599,26 @@ const styles = StyleSheet.create({
       color: '#555',
       lineHeight: 20
   },
-  typeBadge: {
-      backgroundColor: '#F0F9FF',
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 4,
+  
+  // --- ESTILOS DO NOVO CHIP CLEAN ---
+  criticalityBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 20, // Formato pílula
+      alignSelf: 'flex-start',
   },
-  typeText: {
-      color: '#0095FF',
-      fontSize: 10,
-      fontWeight: 'bold',
-      textTransform: 'uppercase'
+  criticalityDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3, // Bolinha perfeita
+      marginRight: 6,
+  },
+  criticalityText: {
+      fontSize: 12,
+      fontWeight: '600',
+      // A cor do texto é dinâmica agora
   },
 
   emptyContainer: {
