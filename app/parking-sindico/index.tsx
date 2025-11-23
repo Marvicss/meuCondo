@@ -1,304 +1,479 @@
-// Salve este arquivo como, por exemplo, app/parking.tsx
-
 import BottomMenu from '@/components/BottomMenu';
+import { API_URL } from '@/constants/envs';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Appbar, useTheme } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { Appbar, Button, Card, Chip, Dialog, Divider, IconButton, Portal, Text, TextInput, useTheme } from 'react-native-paper';
 
-// --- DEFINIÇÃO DE TIPOS ---
+
 type ParkingSpace = {
   id: string;
-  name: string; // Ex: "Vaga 1"
-  isOccupied: boolean;
+  name: string;
+  description?: string | null;
+  capacity: number;
+  available: boolean; 
   condominiumId: string;
 };
 
-const ParkingScreen = () => {
-  const theme = useTheme();
+export default function ParkingSindicoScreen() {
   const router = useRouter();
+  const theme = useTheme();
 
   const [parkingSpaces, setParkingSpaces] = useState<ParkingSpace[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Estados de Criação
+  const [createVisible, setCreateVisible] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
 
-  // useFocusEffect para buscar os dados sempre que a tela for focada
+  // Estados de Exclusão
+  const [deleteVisible, setDeleteVisible] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<ParkingSpace | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // --- BUSCAR DADOS ---
+  const fetchParkingData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        router.replace('/login');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/parkings/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Ordena por nome
+        setParkingSpaces(data.sort((a: any, b: any) => a.name.localeCompare(b.name)));
+      } 
+    } catch (err) {
+       // Silent fail
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
   useFocusEffect(
     useCallback(() => {
-      const fetchParkingData = async () => {
-        setLoading(true);
-        try {
-          const token = await AsyncStorage.getItem("token");
-          if (!token) {
-            router.replace('/login');
-            return;
-          }
-
-          // **IMPORTANTE**: Substitua pela sua URL de API real para buscar as vagas
-          const response = await fetch(`https://meu-condo.onrender.com/parkings/`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            setParkingSpaces(data);
-          } else {
-            // Se a API falhar, usamos dados de exemplo para visualização
-            console.log("Falha ao buscar dados da API. Usando dados de exemplo.");
-            setParkingSpaces(mockData); 
-          }
-
-        } catch (err) {
-          Alert.alert("Erro", "Falha na comunicação com o servidor. Usando dados de exemplo.");
-          // Em caso de erro de rede, também usamos dados de exemplo
-          setParkingSpaces(mockData);
-        } finally {
-          setLoading(false);
-        }
-      };
-
       fetchParkingData();
-    }, [router])
+    }, [fetchParkingData])
   );
 
-  const handleRemovePerson = (spaceId: string) => {
-    // Lógica para chamar a API e desocupar a vaga
-    Alert.alert(
-      "Confirmar",
-      `Deseja realmente remover a pessoa da vaga ${parkingSpaces.find(s => s.id === spaceId)?.name}?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Sim, remover", onPress: () => console.log(`Removendo da vaga ${spaceId}`) }
-      ]
-    );
+  // --- AÇÃO: CRIAR VAGA ---
+  const handleCreateSpace = async () => {
+    if (!newName.trim()) {
+      Alert.alert('Erro', 'Digite o nome da vaga.');
+      return;
+    }
+    try {
+      setCreating(true);
+      const token = await AsyncStorage.getItem('token');
+      // Pega o ID do condomínio da primeira vaga ou do storage
+      const condoId = await AsyncStorage.getItem('condominiumId') || parkingSpaces[0]?.condominiumId || '1';
+
+      await fetch(`${API_URL}/parkings/`, {
+        method: 'POST',
+        headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: newName,
+            description: "Vaga de Estacionamento",
+            capacity: 1,
+            available: true, // Nasce disponível
+            condominiumId: condoId
+        })
+      });
+      
+      setCreateVisible(false);
+      setNewName('');
+      fetchParkingData();
+    } catch (err) {
+      Alert.alert('Erro', 'Falha ao criar vaga.');
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const handleDeleteParking = async (spaceId: string, spaceName: string) => {
-    Alert.alert(
-      "Excluir Vaga",
-      `Tem certeza que deseja excluir a vaga ${spaceName}? Esta ação não pode ser desfeita.`,
-      [
+  // --- AÇÃO: EXCLUIR VAGA ---
+  const handleDeleteSpace = async () => {
+    if (!roomToDelete) return;
+    try {
+      setDeleting(true);
+      const token = await AsyncStorage.getItem('token');
+      await fetch(`${API_URL}/parkings/${roomToDelete.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDeleteVisible(false);
+      setRoomToDelete(null);
+      fetchParkingData();
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível excluir.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // --- AÇÃO: RESERVAR (OCUPAR) ---
+  const handleReserve = async (space: ParkingSpace) => {
+    // Se available for false, está ocupada
+    if (!space.available) {
+        Alert.alert("Aviso", "Esta vaga já está ocupada.");
+        return;
+    }
+
+    Alert.alert("Reservar Vaga", `Deseja marcar a ${space.name} como ocupada?`, [
         { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Excluir", 
-          style: "destructive",
-          onPress: async () => {
+        { text: "Confirmar", onPress: async () => {
             try {
-              const token = await AsyncStorage.getItem("token");
-              if (!token) {
-                router.replace('/login');
-                return;
-              }
+                const token = await AsyncStorage.getItem('token');
+                if (!token) return;
 
-              const response = await fetch(`https://meu-condo.onrender.com/parkings/${spaceId}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
-              });
+                const decoded: any = jwtDecode(token);
+                const myUserId = decoded.userId || decoded.sub || decoded.id;
 
-              if (response.ok) {
-                Alert.alert("Sucesso", "Vaga excluída com sucesso!");
-                // Atualiza a lista removendo a vaga excluída
-                setParkingSpaces(prevSpaces => prevSpaces.filter(space => space.id !== spaceId));
-              } else {
-                Alert.alert("Erro", "Não foi possível excluir a vaga.");
-              }
-            } catch (error) {
-              console.error("Erro ao excluir vaga:", error);
-              Alert.alert("Erro", "Falha ao excluir a vaga.");
+                // Montamos o payload igual ao DTO
+                const payload = {
+                    ...space,
+                    available: false, // Marca como indisponível
+                    description: `Ocupado pelo Síndico [USER_ID:${myUserId}]` // Salva quem reservou na descrição
+                };
+
+                const response = await fetch(`${API_URL}/parkings/${space.id}`, {
+                    method: 'PUT', // Geralmente atualizações completas usam PUT
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    fetchParkingData();
+                } else {
+                    const err = await response.text();
+                    Alert.alert("Erro", `Servidor recusou: ${err}`);
+                }
+            } catch {
+                Alert.alert("Erro", "Falha ao reservar.");
             }
-          }
-        }
-      ]
-    );
+        }}
+    ]);
   };
-  
-  // Dados de exemplo para desenvolvimento (enquanto a API não está pronta)
-  const mockData: ParkingSpace[] = [
-    { id: '1', name: 'Vaga 1', isOccupied: false, condominiumId: '1' },
-    { id: '2', name: 'Vaga 2', isOccupied: false, condominiumId: '1' },
-    { id: '3', name: 'Vaga 3', isOccupied: true, condominiumId: '1' },
-  ];
 
+  // --- AÇÃO: LIBERAR (DESOCUPAR) ---
+  const handleLiberar = async (space: ParkingSpace) => {
+    if (space.available) return; // Se já está true, não faz nada
+
+    Alert.alert("Liberar Vaga", `Deseja liberar a ${space.name}?`, [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Confirmar", style: "destructive", onPress: async () => {
+            try {
+                const token = await AsyncStorage.getItem('token');
+                
+                // Reseta para disponível e limpa a descrição
+                const payload = {
+                    ...space,
+                    available: true,
+                    description: "Vaga Disponível"
+                };
+
+                const response = await fetch(`${API_URL}/parkings/${space.id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    fetchParkingData();
+                } else {
+                    Alert.alert("Erro", "Falha ao liberar.");
+                }
+            } catch {
+                Alert.alert("Erro", "Falha ao liberar.");
+            }
+        }}
+    ]);
+  };
 
   if (loading) {
-    return <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" /></View>;
+    return (
+      <View style={styles.centerScreen}>
+        <ActivityIndicator size="large" color="#0095FF" />
+      </View>
+    );
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Estacionamento" titleStyle={{ color: theme.colors.onSurface }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
+
+      <Appbar.Header mode="center-aligned" style={{ backgroundColor: '#F8F9FA', elevation: 0 }}>
+         <Appbar.Content title="Gerenciar Estacionamento" titleStyle={{ fontWeight: '600', fontSize: 18, color: '#1A1A1A' }} />
       </Appbar.Header>
 
-      <View style={styles.mainContent}>
-        <ScrollView contentContainerStyle={styles.container}>
-        
-        {/* Botão Cadastrar Vagas */}
-        <TouchableOpacity style={styles.registerButton} onPress={() => router.push('/parking-sindico/register-space')}>
-            <Feather name="plus" size={24} color="#fff" />
-            <Text style={styles.registerButtonText}>Cadastrar vagas</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+         
+         <TouchableOpacity 
+            style={styles.addButton} 
+            onPress={() => setCreateVisible(true)}
+            activeOpacity={0.9}
+         >
+            <Feather name="plus" size={20} color="#FFF" />
+            <Text style={styles.addButtonText}>Nova Vaga</Text>
+         </TouchableOpacity>
 
-        {/* Título da Seção */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Gerenciar Vagas</Text>
+         <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+            
+            <Text style={styles.sectionTitle}>Todas as Vagas</Text>
 
-        {/* Lista de Vagas */}
-        {parkingSpaces.map((space) => (
-            <View key={space.id} style={[styles.card, {backgroundColor: theme.colors.surface}, space.isOccupied && styles.cardOccupied]}>
+            {parkingSpaces.length === 0 && (
+                <View style={styles.emptyState}>
+                    <Text style={{ color: '#8E8E93' }}>Nenhuma vaga cadastrada.</Text>
+                </View>
+            )}
+
+            {parkingSpaces.map((space) => {
+                // Lógica INVERSA: se available é true, está livre. Se false, ocupado.
+                const isOccupied = !space.available; 
                 
-                {space.isOccupied && <View style={styles.occupiedIndicator} />}
+                const statusColor = isOccupied ? '#FF3B30' : '#0095FF';
+                const statusText = isOccupied ? 'Ocupada' : 'Livre';
+                const chipBg = isOccupied ? '#FFEBEE' : '#E3F2FD';
 
-                {/* Botão de excluir no canto superior direito */}
-                <TouchableOpacity 
-                  style={styles.deleteButton} 
-                  onPress={() => handleDeleteParking(space.id, space.name)}
-                >
-                  <Feather name="trash-2" size={20} color="#FF453A" />
-                </TouchableOpacity>
+                // Tentar extrair ID da descrição se existir
+                const hasUserId = space.description?.includes('USER_ID');
 
-                <FontAwesome5 name="car-alt" size={48} color="#0099FF" style={styles.cardIcon}/>
-                
-                <Text style={[styles.cardTitle, { color: theme.colors.onSurface }]}>{space.name}</Text>
-                
-                {space.isOccupied ? (
-                    <>
-                        <Text style={[styles.cardSubtitle, { color: theme.colors.onSurfaceVariant }]}>Alguém estacionado no momento</Text>
-                        <TouchableOpacity style={styles.removeButton} onPress={() => handleRemovePerson(space.id)}>
-                            <Text style={styles.removeButtonText}>Remover pessoa da vaga</Text>
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <View style={styles.statusBadge}>
-                        <Text style={styles.statusBadgeText}>Disponível</Text>
-                    </View>
-                )}
-            </View>
-        ))}
+                return (
+                    <Card key={space.id} style={styles.roomCard}>
+                        <View style={styles.cardContent}>
+                            
+                            <View style={styles.cardHeaderRow}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <View style={styles.iconBox}>
+                                        <FontAwesome5 name="car-alt" size={18} color="#0095FF" />
+                                    </View>
+                                    <View style={{ marginLeft: 12, flex: 1 }}>
+                                        <Text style={styles.roomTitle} numberOfLines={1}>{space.name}</Text>
+                                        <Text style={styles.roomCapacity}>
+                                            {isOccupied && hasUserId ? 'Reservado pelo App' : (space.description || 'Vaga Padrão')}
+                                        </Text>
+                                    </View>
+                                </View>
+                                
+                                <Chip 
+                                    style={{ backgroundColor: chipBg, height: 30, alignItems: 'center', justifyContent: 'center' }} 
+                                    textStyle={{ color: statusColor, fontSize: 11, fontWeight: 'bold', lineHeight: 14 }}
+                                >
+                                    {statusText}
+                                </Chip>
+                            </View>
 
-        </ScrollView>
-        <BottomMenu />
+                            <Divider style={{ marginVertical: 12, backgroundColor: '#F0F0F0' }} />
+
+                            <View style={styles.actionButtons}>
+                                
+                                {/* BOTÃO RESERVAR */}
+                                <Button 
+                                    mode="contained" 
+                                    onPress={() => handleReserve(space)}
+                                    disabled={isOccupied} 
+                                    style={[styles.actionBtn, { backgroundColor: isOccupied ? '#E0E0E0' : '#0095FF', flex: 1 }]}
+                                    contentStyle={{ height: 40 }}
+                                    labelStyle={{ fontSize: 12, fontWeight: '600' }}
+                                    compact
+                                >
+                                    Estacionar
+                                </Button>
+
+                                {/* BOTÃO LIBERAR */}
+                                <Button 
+                                    mode="outlined" 
+                                    onPress={() => handleLiberar(space)}
+                                    disabled={!isOccupied}
+                                    style={[
+                                      styles.actionBtn, 
+                                      { 
+                                        borderColor: isOccupied ? '#0095FF' : '#E0E0E0', 
+                                        flex: 1 
+                                      }
+                                    ]}
+                                    contentStyle={{ height: 40 }}
+                                    textColor={isOccupied ? "#0095FF" : "#A0A0A0"}
+                                    labelStyle={{ fontSize: 12, fontWeight: '600' }}
+                                    compact
+                                >
+                                    Liberar
+                                </Button>
+
+                                <IconButton 
+                                    icon="delete-outline" 
+                                    iconColor="#FF3B30" 
+                                    size={22} 
+                                    onPress={() => { setRoomToDelete(space); setDeleteVisible(true); }}
+                                    style={{ margin: 0, marginLeft: 4 }}
+                                />
+                            </View>
+                        </View>
+                    </Card>
+                );
+            })}
+         </ScrollView>
+
+         <Portal>
+            <Dialog visible={createVisible} onDismiss={() => setCreateVisible(false)} style={{ backgroundColor: '#fff', borderRadius: 16 }}>
+                <Dialog.Title style={{ color: '#1A1A1A', fontWeight: 'bold', fontSize: 18 }}>Nova Vaga</Dialog.Title>
+                <Dialog.Content>
+                    <TextInput 
+                        label="Nome da Vaga (ex: 102-A)" 
+                        value={newName} 
+                        onChangeText={setNewName} 
+                        mode="outlined" 
+                        style={styles.modalInput} 
+                        outlineColor="#E0E0E0" 
+                        activeOutlineColor="#0095FF"
+                    />
+                </Dialog.Content>
+                <Dialog.Actions>
+                    <Button onPress={() => setCreateVisible(false)} textColor="#666">Cancelar</Button>
+                    <Button onPress={handleCreateSpace} loading={creating} textColor="#0095FF" labelStyle={{ fontWeight: 'bold' }}>Criar</Button>
+                </Dialog.Actions>
+            </Dialog>
+
+            <Dialog visible={deleteVisible} onDismiss={() => setDeleteVisible(false)} style={{ backgroundColor: '#fff', borderRadius: 16 }}>
+                <Dialog.Title style={{ color: '#FF3B30', fontSize: 18 }}>Excluir Vaga?</Dialog.Title>
+                <Dialog.Content>
+                    <Text variant="bodyMedium" style={{ color: '#333' }}>
+                        Tem certeza que deseja excluir "{roomToDelete?.name}"?
+                    </Text>
+                </Dialog.Content>
+                <Dialog.Actions>
+                    <Button onPress={() => setDeleteVisible(false)} textColor="#666">Cancelar</Button>
+                    <Button onPress={handleDeleteSpace} loading={deleting} textColor="#FF3B30" labelStyle={{ fontWeight: 'bold' }}>Excluir</Button>
+                </Dialog.Actions>
+            </Dialog>
+         </Portal>
+
       </View>
+      
+      <BottomMenu />
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  mainContent: {
-    flex: 1,
-  },
-  container: {
-    padding: 20,
-    paddingBottom: 120,
-    alignItems: 'center',
-  },
-  registerButton: {
-    backgroundColor: '#0099FF',
-    borderRadius: 16,
-    paddingVertical: 18,
-    width: '100%',
+  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' },
+  container: { flex: 1, paddingHorizontal: 16 },
+  
+  addButton: {
+    backgroundColor: '#0095FF',
+    borderRadius: 30,
+    paddingVertical: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 32,
-    elevation: 4,
-    shadowColor: '#0099FF',
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  registerButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    marginTop: 10,
     marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#0095FF',
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 }
   },
-  card: {
-    width: '100%',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+  addButtonText: { color: '#fff', fontWeight: '600', marginLeft: 8, fontSize: 15 },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    marginLeft: 4
+  },
+  
+  emptyState: {
+    padding: 40,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+    borderRadius: 12
+  },
+
+  roomCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    position: 'relative',
-    overflow: 'hidden',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: '#F0F0F0'
   },
-  cardOccupied: {
-    paddingTop: 30, // Espaço extra para o indicador
+  cardContent: {
+    padding: 16
   },
-  occupiedIndicator: {
-    position: 'absolute',
-    top: 10,
-    right: 16,
-    width: 24,
-    height: 6,
-    backgroundColor: '#FF453A', // Vermelho
-    borderRadius: 3,
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  deleteButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: '#FFE5E5',
-    padding: 10,
-    borderRadius: 12,
-    zIndex: 10,
-    elevation: 2,
-    shadowColor: '#FF453A',
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+  iconBox: {
+    width: 40, 
+    height: 40, 
+    borderRadius: 20, 
+    backgroundColor: '#E3F2FD', 
+    justifyContent: 'center', 
+    alignItems: 'center'
   },
-  cardIcon: {
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statusBadge: {
-    backgroundColor: '#34C75920', // Verde com opacidade
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginTop: 8,
-  },
-  statusBadgeText: {
-    color: '#34C759', // Verde
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  removeButton: {
-    backgroundColor: '#0099FF',
-    borderRadius: 12,
-    paddingVertical: 14,
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  removeButtonText: {
-    color: '#fff',
+  roomTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
+    color: '#1A1A1A'
   },
-});
+  roomCapacity: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2
+  },
 
-export default ParkingScreen;
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8
+  },
+  actionBtn: {
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center'
+  },
+  
+  modalInput: {
+    marginBottom: 12,
+    backgroundColor: '#fff'
+  }
+});
