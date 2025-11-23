@@ -7,7 +7,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Divider, Text, useTheme } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import api from '../services/api'; // Caminho ajustado com alias
+import api from '../services/api'; 
 
 // --- TIPAGENS ---
 type DecodedToken = { userId: string; email: string; userType: string; };
@@ -156,7 +156,7 @@ const Home = () => {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.colors.background }]}>
         
-        {/* HEADER - Menu Hamburguer */}
+        {/* HEADER - Menu Hamburguer MODIFICADO */}
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.menuButton}
@@ -165,9 +165,18 @@ const Home = () => {
           >
             <Feather name="menu" size={28} color={theme.colors.onSurface} />
           </TouchableOpacity>
-          <Text variant="titleLarge" style={{ marginLeft: 16, fontWeight: 'bold', color: theme.colors.onSurface }}>
-             Olá, {user?.fullName?.split(' ')[0] || 'Morador'}
-          </Text>
+          
+          {/* Nova View para empilhar o Olá e o Cargo */}
+          <View style={{ marginLeft: 16 }}>
+              <Text variant="titleLarge" style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>
+                  Olá, {user?.fullName?.split(' ')[0] || 'Morador'}
+              </Text>
+              
+              {/* Texto do Cargo */}
+              <Text variant="labelMedium" style={{ color: '#0099FF', fontWeight: 'bold', textTransform: 'uppercase', marginTop: -2 }}>
+                  Síndico
+              </Text>
+          </View>
         </View>
 
         {/* CARD DE AVISO IMPORTANTE */}
@@ -206,10 +215,9 @@ const Home = () => {
             </View>
           }
           renderItem={({ item }) => (
-            // ✅ AQUI ESTÁ O REDIRECIONAMENTO PARA RESERVAS
             <TouchableOpacity 
               style={[styles.reservaCard, { backgroundColor: theme.colors.surface }]}
-              onPress={() => router.push('/reservas/morador' as any)} // Rota para reservas
+              onPress={() => router.push('/reservas/morador' as any)} 
             >
               <View style={[styles.iconPlaceholder, { backgroundColor: '#E0F2FF' }]}>
                  <Feather name="calendar" size={24} color="#0099FF" />
@@ -228,11 +236,10 @@ const Home = () => {
           </View>
         ) : (
           votacoes.map(v => (
-            // ✅ AQUI ESTÁ O REDIRECIONAMENTO PARA VOTAÇÃO
             <TouchableOpacity 
               key={v.id} 
               style={[styles.votacaoCard, { backgroundColor: theme.colors.surface, borderTopColor: '#0099FF' }]}
-              onPress={() => router.push('/votation/morador' as any)} // Rota para votação
+              onPress={() => router.push('/votation/morador' as any)} 
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                  <Feather name="check-circle" size={20} color="#0099FF" style={{ marginRight: 8 }} />
