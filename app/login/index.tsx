@@ -168,13 +168,6 @@ export default function LoginScreen() {
             <Text style={styles.link} onPress={() => router.push("/register")}>Cadastre-se.</Text>
           </Text>
 
-          <TouchableOpacity
-            style={styles.roleButton}
-            onPress={() => router.push("/login/sindico" as any)}
-          >
-            <Text style={styles.roleText}>Sou Síndico</Text>
-          </TouchableOpacity>
-
           {/* ========================= reCAPTCHA ========================= */}
           <Recaptcha
             ref={recaptchaRef}
