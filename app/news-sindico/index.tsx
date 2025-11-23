@@ -1,3 +1,5 @@
+import BottomMenu from '@/components/BottomMenu';
+import { API_URL } from '@/constants/envs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -6,41 +8,22 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Platform,
   SafeAreaView,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View
 } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { Appbar, Card, Divider, IconButton, Text, useTheme } from 'react-native-paper';
 import { SvgXml } from 'react-native-svg';
 
-// --- Ícones ---
-const Icones = {
-  plus: `
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" 
-    viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" 
-    stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  `,
-  remove: `
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" 
-    viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" 
-    stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="3 6 5 6 21 6"></polyline>
-      <path d="M19 6v14a2 2 0 0 1-2 
-      2H7a2 2 0 0 1-2-2V6m3 
-      0V4a2 2 0 0 1 2-2h4a2 
-      2 0 0 1 2 2v2"></path>
-      <line x1="10" y1="11" x2="10" y2="17"></line>
-      <line x1="14" y1="11" x2="14" y2="17"></line>
-    </svg>
-  `,
-};
+// --- Ícones SVG ---
+const IconPlus = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+`;
 
 type Aviso = {
   id: string;
@@ -52,44 +35,64 @@ type Aviso = {
 
 const capitalize = (str: string) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
 
-// --- Componente Card Ajustado ---
+// --- Componente Card Moderno e Fino ---
 const AvisoCard = ({ item, onRemove, theme }: { item: Aviso, onRemove: (id: string) => void, theme: any }) => {
-    // Usa a mensagem como título principal se não houver título
-    const displayTitle = item.title || (item.message.length > 50 ? item.message.substring(0, 50) + "..." : item.message);
-    const displayMessage = item.title ? item.message : (item.message.length > 50 ? item.message : "");
+  const displayTitle = item.title || "Aviso";
+  
+  // --- TRADUÇÃO DAS CATEGORIAS ---
+  let categoryLabel = capitalize(item.type);
+  const typeLower = item.type.toLowerCase();
+  if (typeLower === 'urgent') categoryLabel = 'Urgente';
+  if (typeLower === 'maintenance') categoryLabel = 'Manutenção';
+  if (typeLower === 'events') categoryLabel = 'Eventos';
+  if (typeLower === 'general') categoryLabel = 'Geral';
 
-    return (
-      <View style={[styles.cardContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
-        <View style={[styles.cardIndicator, { backgroundColor: theme.colors.primary }]} />
-        <View style={styles.cardContent}>
-          <View>
-            <Text style={[styles.cardTitle, { color: theme.colors.onSurface }]}>
-                {displayTitle}
-            </Text>
-            
-            <Text style={[styles.cardCategory, { color: theme.colors.primary }]}>
-                {capitalize(item.type)}
-            </Text>
-            
-            {!!displayMessage && (
-                 <Text style={[styles.cardMessage, { color: theme.colors.onSurfaceVariant }]}>{displayMessage}</Text>
-            )}
-            
-            <Text style={[styles.cardDetails, { color: theme.colors.onSurfaceVariant }]}>
-              Data: {new Date(item.createdAt).toLocaleDateString('pt-BR')}
-            </Text>
-          </View>
-          
-          <View style={styles.cardActions}>
-            {/* CORREÇÃO 1: Cor do botão 'Remover' fixada em Vermelho Vivo (#FF3B30) para não ficar cinza no modo escuro */}
-            <TouchableOpacity style={[styles.cardButton, styles.removeButton, { backgroundColor: '#FF3B30' }]} onPress={() => onRemove(item.id)}>
-              <SvgXml xml={Icones.remove} width="16" height="16" />
-              <Text style={styles.cardButtonText}>Remover</Text>
-            </TouchableOpacity>
-          </View>
+  // Cores
+  const isUrgent = typeLower === 'urgent' || typeLower === 'urgente';
+  const categoryColor = isUrgent ? theme.colors.error : theme.colors.primary;
+
+  return (
+    <Card style={[styles.cardClean, { backgroundColor: theme.colors.surface }]} mode="elevated">
+      <View style={styles.cardInner}>
+        
+        {/* Linha Superior: Categoria e Botão Deletar */}
+        <View style={styles.cardHeaderRow}>
+             <View style={{ flex: 1 }}>
+                {/* Categoria como Título Superior */}
+                <Text style={{ color: categoryColor, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {categoryLabel}
+                </Text>
+                {/* Título Principal */}
+                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '600', marginTop: 2 }}>
+                    {displayTitle}
+                </Text>
+             </View>
+             
+             {/* Botão Remover (Alinhado ao topo direita) */}
+             <IconButton 
+                icon="delete-outline" 
+                iconColor={theme.colors.error}
+                size={20}
+                onPress={() => onRemove(item.id)}
+                style={{ margin: 0, marginTop: -6, marginRight: -8 }}
+            />
         </View>
+
+        {/* Data Pequena */}
+        <Text variant="bodySmall" style={{ color: theme.colors.outline, marginTop: 2, marginBottom: 8 }}>
+            {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+        </Text>
+
+        <Divider style={{ backgroundColor: '#F0F0F0', marginBottom: 8 }} />
+
+        {/* Mensagem */}
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, lineHeight: 20 }}>
+            {item.message}
+        </Text>
+
       </View>
-    );
+    </Card>
+  );
 };
 
 const QuadroDeAvisosScreen = () => {
@@ -97,7 +100,6 @@ const QuadroDeAvisosScreen = () => {
   const router = useRouter();
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [loading, setLoading] = useState(true);
-  
   const [filtroCategoria, setFiltroCategoria] = useState('all');
 
   useFocusEffect(
@@ -105,33 +107,19 @@ const QuadroDeAvisosScreen = () => {
       const fetchAvisos = async () => {
         setLoading(true);
         try {
-          const token = await AsyncStorage.getItem('token');
+          const token = await AsyncStorage.getItem("token");
           if (!token) {
-            Alert.alert(
-              'Autenticação Necessária',
-              'Por favor, faça o login para continuar.'
-            );
             router.replace('/login');
             return;
           }
-
-          const response = await fetch('https://meu-condo.onrender.com/news', {
-            headers: { Authorization: `Bearer ${token}` },
+          const response = await fetch(`${API_URL}/news`, {
+            headers: { "Authorization": `Bearer ${token}` },
           });
-
-          if (!response.ok) throw new Error('Falha ao carregar os avisos.');
-          
+          if (!response.ok) throw new Error('Falha ao carregar avisos.');
           const data: Aviso[] = await response.json();
-          setAvisos(
-            data.sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-            )
-          );
+          setAvisos(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         } catch (error) {
-          console.error('Falha ao buscar avisos:', error);
-          Alert.alert('Erro', 'Não foi possível carregar os avisos.');
+           // Silent fail
         } finally {
           setLoading(false);
         }
@@ -142,138 +130,179 @@ const QuadroDeAvisosScreen = () => {
 
   const avisosFiltrados = useMemo(() => {
     return avisos.filter(aviso => {
-        const passaCategoria = filtroCategoria === 'all' || aviso.type.toLowerCase() === filtroCategoria.toLowerCase();
+        const typeLower = aviso.type.toLowerCase();
+        
+        // Lógica para o filtro funcionar com inglês ou português
+        let typeMatch = typeLower;
+        if (typeLower === 'urgent') typeMatch = 'urgente';
+        if (typeLower === 'maintenance') typeMatch = 'manutencao';
+        if (typeLower === 'events') typeMatch = 'eventos';
+        if (typeLower === 'general') typeMatch = 'geral';
+
+        const passaCategoria = filtroCategoria === 'all' || typeMatch.includes(filtroCategoria) || typeLower === filtroCategoria;
         return passaCategoria;
     });
   }, [avisos, filtroCategoria]);
-
   
   const handleRemove = (id: string) => {
-    Alert.alert("Confirmar Remoção", "Deseja remover este aviso?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Remover",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            const token = await AsyncStorage.getItem("token");
-            if (!token) return;
-            const response = await fetch(`https://meu-condo.onrender.com/news/${id}`, {
-              method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error("Falha ao remover.");
-            setAvisos(prev => prev.filter(a => a.id !== id));
-            Alert.alert("Sucesso", "Aviso removido.");
-          } catch (error) {
-            Alert.alert("Erro", "Não foi possível remover.");
+    Alert.alert("Excluir Aviso", "Deseja apagar este aviso?", [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Apagar", style: "destructive", onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              if (!token) return;
+              const response = await fetch(`${API_URL}/news/${id}`, {
+                  method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (!response.ok) throw new Error("Falha");
+              setAvisos(prev => prev.filter(a => a.id !== id));
+            } catch (error) { Alert.alert("Erro", "Não foi possível remover."); }
           }
         }
-      }
-    ]);
+      ]
+    );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.centeredScreen, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView style={[styles.centeredScreen, { backgroundColor: '#F8F9FA' }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.onBackground }]}>Carregando...</Text>
       </SafeAreaView>
     );
   }
 
+  const pickerTextColor = theme.dark ? '#FFFFFF' : '#000000';
+  const primaryColor = '#0095FF';
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} backgroundColor={theme.colors.background} />
-      <View style={styles.container}>
-        
-        <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>Quadro de Avisos</Text>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: '#F8F9FA' }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
+      
+      {/* Header Modificado: Centralizado e sem botão de voltar */}
+      <Appbar.Header mode="center-aligned" style={{ backgroundColor: '#F8F9FA', elevation: 0 }}>
+         <Appbar.Content 
+            title="Quadro de Avisos" 
+            titleStyle={{ fontWeight: '400', fontSize: 18, color: '#1A1A1A' }} 
+         />
+      </Appbar.Header>
 
-        <TouchableOpacity 
-            style={[styles.novoAvisoButton, { backgroundColor: theme.colors.primary }]} 
-            onPress={() => router.push('/news-sindico/adicionar-aviso')}
-        >
-          <SvgXml xml={Icones.plus} width="24" height="24" />
-          <Text style={[styles.novoAvisoButtonText, { color: theme.colors.onPrimary }]}>Novo Aviso</Text>
-        </TouchableOpacity>
+      {/* Container principal ajustado para empurrar o menu para baixo */}
+      <View style={styles.mainContent}>
+        <View style={styles.container}>
+            
+            <TouchableOpacity 
+                style={[styles.novoAvisoButton, { backgroundColor: primaryColor }]} 
+                onPress={() => router.push('/news-sindico/adicionar-aviso')}
+                activeOpacity={0.9}
+            >
+            <SvgXml xml={IconPlus} width="20" height="20" />
+            <Text style={styles.novoAvisoButtonText}>Publicar Novo Aviso</Text>
+            </TouchableOpacity>
 
-        <Text style={[styles.subHeaderTitle, { color: theme.colors.onBackground }]}>Lançamentos recentes</Text>
-
-        {/* --- FILTROS (CORRIGIDO PARA TEMA ESCURO) --- */}
-        <View style={styles.filterContainer}>
-            <View style={[styles.pillFilter, { borderColor: theme.colors.outline, backgroundColor: theme.colors.surface, flex: 1 }]}>
+            {/* Título da Seção */}
+            <Text variant="titleMedium" style={{ fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>Recentes</Text>
+                
+            {/* --- FILTRO DE LARGURA TOTAL E ALTURA CORRIGIDA --- */}
+            <View style={[styles.filterWrapper, { borderColor: theme.colors.outline }]}>
                 <Picker
                     selectedValue={filtroCategoria}
                     onValueChange={(val) => setFiltroCategoria(val)}
-                    // Cor do texto quando FECHADO (Branco no Dark Mode)
-                    style={{ color: theme.colors.onSurface }}
+                    // Altura 56 e width 100%
+                    style={{ color: theme.colors.onSurface, height: 56, width: '100%' }}
                     mode="dropdown"
                     dropdownIconColor={theme.colors.onSurface}
                 >
-                    {/* CORREÇÃO 2: Cor do texto quando ABERTO (Sempre Preto, pois o fundo do popup é branco) */}
-                    <Picker.Item label="Todas as Categorias" value="all" color="#000000" style={{ fontSize: 14 }} />
-                    <Picker.Item label="Geral" value="general" color="#000000" style={{ fontSize: 14 }} />
-                    <Picker.Item label="Urgente" value="urgent" color="#000000" style={{ fontSize: 14 }} />
-                    <Picker.Item label="Manutenção" value="maintenance" color="#000000" style={{ fontSize: 14 }} />
-                    <Picker.Item label="Eventos" value="events" color="#000000" style={{ fontSize: 14 }} />
+                    <Picker.Item label="Todas as categorias" value="all" style={{ fontSize: 16 }} color={pickerTextColor}/>
+                    <Picker.Item label="Geral" value="general" style={{ fontSize: 16 }} color={pickerTextColor}/>
+                    <Picker.Item label="Urgente" value="urgent" style={{ fontSize: 16 }} color={pickerTextColor}/>
+                    <Picker.Item label="Manutenção" value="manutencao" style={{ fontSize: 16 }} color={pickerTextColor}/>
+                    <Picker.Item label="Eventos" value="events" style={{ fontSize: 16 }} color={pickerTextColor}/>
                 </Picker>
             </View>
+
+            <FlatList
+            data={avisosFiltrados}
+            renderItem={({ item }) => <AvisoCard item={item} onRemove={handleRemove} theme={theme} />}
+            keyExtractor={(item) => item.id.toString()}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            ListEmptyComponent={() => (
+                <View style={styles.centeredScreen}>
+                <Text style={{ color: '#8E8E93', marginTop: 40, fontSize: 14 }}>Nenhum aviso encontrado.</Text>
+                </View>
+            )}
+            />
         </View>
 
-        <FlatList
-          data={avisosFiltrados}
-          renderItem={({ item }) => <AvisoCard item={item} onRemove={handleRemove} theme={theme} />}
-          keyExtractor={(item) => item.id.toString()}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          ListEmptyComponent={() => (
-            <View style={styles.centeredScreen}>
-              <Text style={{ color: theme.colors.onSurfaceVariant }}>Nenhum aviso encontrado.</Text>
-            </View>
-          )}
-        />
+        {/* Menu Inferior Adicionado */}
+        <BottomMenu />
       </View>
+      
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  // Estilo para garantir que o menu fique no final
+  mainContent: { flex: 1, justifyContent: 'space-between' },
+  
   container: { flex: 1, paddingHorizontal: 20 },
-  centeredScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 },
-  loadingText: { marginTop: 10, fontSize: 16 },
+  centeredScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  headerTitle: { 
-    fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, 
-    marginTop: Platform.OS === 'android' ? 40 : 10 
-  },
-  
-  novoAvisoButton: { borderRadius: 12, paddingVertical: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 20, elevation: 3 },
-  novoAvisoButtonText: { fontSize: 18, fontWeight: 'bold', marginLeft: 8 },
-  subHeaderTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
-
-  // Estilos dos Filtros
-  filterContainer: { flexDirection: 'row', marginBottom: 20 },
-  pillFilter: { 
-    borderWidth: 1, 
-    borderRadius: 25, 
-    height: 50, 
+  novoAvisoButton: { 
+    borderRadius: 30, 
+    paddingVertical: 12, 
+    flexDirection: 'row', 
     justifyContent: 'center', 
-    overflow: 'hidden',
-    paddingLeft: 5
+    alignItems: 'center', 
+    marginBottom: 20, 
+    elevation: 2,
+    shadowColor: '#0095FF',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    marginTop: 10
   },
-  
-  // Estilos do Card
-  cardContainer: { borderRadius: 12, marginBottom: 15, flexDirection: 'row', overflow: 'hidden', borderWidth: 1 },
-  cardIndicator: { width: 8 },
-  cardContent: { flex: 1, padding: 15, justifyContent: 'space-between' },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 2 }, 
-  cardCategory: { fontSize: 12, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', opacity: 0.8 },
-  cardMessage: { fontSize: 14, marginBottom: 8, lineHeight: 20 },
-  cardDetails: { fontSize: 12 },
-  cardActions: { flexDirection: 'row', marginTop: 15, justifyContent: 'flex-end' },
-  cardButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginLeft: 10 },
-  removeButton: { },
-  cardButtonText: { color: 'white', fontWeight: 'bold', fontSize: 14, marginLeft: 6 },
+  novoAvisoButtonText: { 
+      color: 'white', 
+      fontSize: 15, 
+      fontWeight: '500', 
+      marginLeft: 8 
+  },
+
+  // Filtro Modificado (Altura e Largura)
+  filterWrapper: {
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 56, // Altura aumentada
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    width: '100%', // Largura total
+    marginBottom: 16 
+  },
+
+  // Card
+  cardClean: {
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 1, 
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  cardInner: {
+    padding: 12,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
 });
 
 export default QuadroDeAvisosScreen;
