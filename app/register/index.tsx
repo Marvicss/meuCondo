@@ -115,9 +115,10 @@ export default function RegisterScreen() {
             <Text style={styles.buttonText}>Cadastrar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.roleButton} onPress={() => setUserType("USER")}>
-            <Text style={styles.roleText}>Sou Morador</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/login')}>
+            <Text style={styles.backText}>Voltar para o Login</Text>
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -125,6 +126,18 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  backButton: {
+  marginTop: 20,
+  padding: 12,
+  alignItems: "center",
+},
+
+backText: {
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: "500",
+},
+
   container: {
     flex: 1,
     backgroundColor: "#0095FF",
