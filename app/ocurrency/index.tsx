@@ -1,5 +1,6 @@
 import BottomMenu from '@/components/BottomMenu';
 import { API_URL } from '@/constants/envs';
+import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
@@ -18,13 +19,14 @@ import {
 import {
   Button,
   Card,
+  Divider,
   Menu,
   Text,
-  TextInput,
-  useTheme
+  TextInput
 } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+// --- TIPOS (Mantidos) ---
 type Ocorrencia = {
   id: string;
   title: string;
@@ -44,35 +46,18 @@ type OcorrenciaComAutor = Ocorrencia & {
   authorAvatarUrl?: string;
 };
 
-type UserData = {
-  id: string;
-  fullName: string;
-  apartmentId: string;
-};
-
-type ApartmentData = {
-  id: string;
-  number: number;
-  condominiumId: string;
-};
-
-type OcorrenciaCardProps = {
-  item: OcorrenciaComAutor;
-};
-
-interface DecodedToken {
-  userId: string;
-  email: string;
-  userType: string;
-  iat: number;
-  exp: number;
-}
+type UserData = { id: string; fullName: string; apartmentId: string; };
+type ApartmentData = { id: string; number: number; condominiumId: string; };
+type OcorrenciaCardProps = { item: OcorrenciaComAutor; };
+interface DecodedToken { userId: string; email: string; userType: string; iat: number; exp: number; }
 
 type NovaOcorrenciaInputProps = {
   onPublicar: (data: { title: string; description: string; type: string }) => Promise<void>;
   isPosting: boolean;
   avatarUrl?: string;
 };
+
+// --- FUNÇÕES AUXILIARES ---
 
 const formatTimeAgo = (dateString: string): string => {
   const date = new Date(dateString);
@@ -92,57 +77,64 @@ const formatTimeAgo = (dateString: string): string => {
   return `há poucos segundos`;
 };
 
-const CRITICALITY_COLORS = {
-  alto: '#E53935',
-  medio: '#FFA726',
-  baixo: '#66BB6A',
-  default: '#E0E0E0',
+const buildAvatarUrl = (avatarPath?: string | null): string | undefined => {
+  if (!avatarPath) return undefined;
+  if (avatarPath.startsWith('http')) return avatarPath;
+  if (avatarPath.startsWith('/')) return `${API_URL}${avatarPath}`;
+  return avatarPath;
 };
 
-const getCriticalityColor = (criticality: string): string => {
-  const key = criticality?.toLowerCase() as keyof typeof CRITICALITY_COLORS;
-  return CRITICALITY_COLORS[key] || CRITICALITY_COLORS.default;
+const getTranslatedType = (type: string): string => {
+  const map: Record<string, string> = {
+    'SUGGESTION': 'Sugestão',
+    'COMPLAINT': 'Reclamação',
+    'REQUEST': 'Pedido',
+    'OTHERS': 'Outros'
+  };
+  return map[type] || type;
 };
+
+const formatAuthorName = (fullName: string): string => {
+  if (!fullName) return 'Morador';
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
+// --- COMPONENTES DE UI ---
 
 const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
-  const barColor = getCriticalityColor(item.criticality);
-  const cardStyle = [
-    styles.card,
-    {
-      borderLeftWidth: 6,
-      borderLeftColor: barColor,
-    },
-  ];
-
   return (
-    <Card style={cardStyle}>
-      <Card.Title
-        title={
-          <View style={{ flexDirection: 'column' }}>
-            <Text style={styles.autor}>{item.authorName}</Text>
-            <Text style={styles.apartment}>{`apt ${item.apartmentNumber}`}</Text>
+    <Card style={styles.cardClean}>
+      <View style={styles.cardContentWrapper}>
+          <View style={styles.cardHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  {item.authorAvatarUrl ? (
+                      <Image source={{ uri: item.authorAvatarUrl }} style={styles.avatarSmall} />
+                  ) : (
+                      <View style={[styles.avatarSmall, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
+                          <Feather name="user" size={16} color="#666" />
+                      </View>
+                  )}
+                  <View style={{ marginLeft: 10 }}>
+                      <Text style={styles.authorName}>{formatAuthorName(item.authorName)}</Text>
+                      <Text style={styles.aptInfo}>Apt {item.apartmentNumber}</Text>
+                  </View>
+              </View>
+              <Text style={styles.timeAgo}>{formatTimeAgo(item.createdAt)}</Text>
           </View>
-        }
-        subtitle={formatTimeAgo(item.createdAt)}
-        subtitleStyle={styles.subtitle}
-        left={(props) =>
-          item.authorAvatarUrl ? (
-            <Image
-              {...props}
-              source={{ uri: item.authorAvatarUrl }}
-              style={styles.avatarImage}
-            />
-          ) : (
-            <View {...props} style={styles.avatar} />
-          )
-        }
-      />
-      <Card.Content>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text variant="bodyMedium" style={styles.texto}>
-          {item.description}
-        </Text>
-      </Card.Content>
+
+          <Divider style={{ marginVertical: 12, backgroundColor: '#F0F0F0' }} />
+
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text style={styles.cardDesc}>{item.description}</Text>
+
+          <View style={{ flexDirection: 'row', marginTop: 12 }}>
+               <View style={styles.typeBadge}>
+                  <Text style={styles.typeText}>{getTranslatedType(item.type)}</Text>
+               </View>
+          </View>
+      </View>
     </Card>
   );
 };
@@ -172,56 +164,46 @@ const NovaOcorrenciaInput: React.FC<NovaOcorrenciaInputProps> = ({ onPublicar, i
   };
 
   return (
-    <Card style={styles.inputCard}>
-      <View style={styles.inputContainer}>
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-        ) : (
-          <View style={styles.avatar} />
-        )}
-        <View style={styles.textInputWrapper}>
-          <TextInput
-            style={[styles.textInput, styles.titleInput]}
+    <Card style={styles.inputCardClean}>
+      <View style={styles.inputContent}>
+        <Text style={styles.sectionTitle}>Nova Ocorrência</Text>
+
+        <TextInput
             placeholder="Título da ocorrência"
-            placeholderTextColor="#444"
-            selectionColor="#0A84FF"
             value={title}
             onChangeText={setTitle}
-            underlineColor="transparent"
-            activeUnderlineColor="transparent"
-            mode="flat"
-            textColor="#000"
-            theme={{ colors: { text: '#000', placeholder: '#444' } }}
-          />
-          <View style={styles.divider} />
-          <TextInput
-            style={styles.textInput}
-            placeholder="Descreva sua ocorrência"
-            placeholderTextColor="#444"
-            selectionColor="#0A84FF"
+            mode="outlined"
+            style={styles.inputClean}
+            outlineColor="#E0E0E0"
+            activeOutlineColor="#0095FF"
+            textColor="#1A1A1A"
+            theme={{ colors: { background: '#FFFFFF' } }}
+        />
+
+        <TextInput
+            placeholder="Descreva o que aconteceu..."
             value={description}
             onChangeText={setDescription}
+            mode="outlined"
             multiline
-            underlineColor="transparent"
-            activeUnderlineColor="transparent"
-            mode="flat"
-            textColor="#000"
-            theme={{ colors: { text: '#000', placeholder: '#444' } }}
-          />
+            numberOfLines={3}
+            style={[styles.inputClean, { height: 80 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor="#0095FF"
+            textColor="#1A1A1A"
+            theme={{ colors: { background: '#FFFFFF' } }}
+        />
 
-          <Text style={{ marginTop: 10, marginBottom: 8, fontWeight: '600', color: '#333' }}>
-            Selecione o tipo da ocorrência
-          </Text>
-          <Menu
+        <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
             anchor={
-              <TouchableOpacity style={styles.pickerField} onPress={() => setMenuVisible(true)}>
-                <Text style={styles.pickerText}>{selectedLabel}</Text>
-                <Text style={styles.pickerChevron}>▾</Text>
+              <TouchableOpacity style={styles.pickerButton} onPress={() => setMenuVisible(true)}>
+                <Text style={styles.pickerButtonText}>{selectedLabel}</Text>
+                <Feather name="chevron-down" size={20} color="#666" />
               </TouchableOpacity>
             }
-          >
+        >
             {occurrenceOptions.map(opt => (
               <Menu.Item
                 key={opt.value}
@@ -229,23 +211,23 @@ const NovaOcorrenciaInput: React.FC<NovaOcorrenciaInputProps> = ({ onPublicar, i
                 title={opt.label}
               />
             ))}
-          </Menu>
-         </View>
-       </View>
-       <Card.Actions style={styles.cardActions}>
-         <Button
-           mode="contained"
-           onPress={handlePublicar}
-           style={styles.publicarButton}
-           disabled={!title.trim() || !description.trim() || isPosting}
-           loading={isPosting}
-         >
-           {isPosting ? 'Publicando...' : 'Publicar'}
-         </Button>
-       </Card.Actions>
-     </Card>
-   );
- };
+        </Menu>
+
+        <Button
+            mode="contained"
+            onPress={handlePublicar}
+            style={styles.publishButton}
+            labelStyle={{ fontSize: 14, fontWeight: '600' }}
+            disabled={!title.trim() || !description.trim() || isPosting}
+            loading={isPosting}
+            buttonColor="#0095FF"
+        >
+            {isPosting ? 'Publicando...' : 'Publicar'}
+        </Button>
+      </View>
+    </Card>
+  );
+};
 
 export default function OcorrenciasScreen() {
   const [ocorrencias, setOcorrencias] = useState<OcorrenciaComAutor[]>([]);
@@ -253,7 +235,6 @@ export default function OcorrenciasScreen() {
   const [isPosting, setIsPosting] = useState<boolean>(false);
   const [userType, setUserType] = useState<string>('USER');
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | undefined>(undefined);
-  const { colors } = useTheme();
   const router = useRouter();
 
   const fetchOcorrencias = async () => {
@@ -283,7 +264,6 @@ export default function OcorrenciasScreen() {
       }
 
       const headers = { 'Authorization': `Bearer ${token}` };
-
       const endpoint = decodedToken.userType === 'ADMIN' 
         ? `${API_URL}/occurrences/`
         : `${API_URL}/occurrences/mines`;
@@ -298,22 +278,14 @@ export default function OcorrenciasScreen() {
         try {
           if (userCache.has(ocorrencia.userId)) {
             const cachedUser = userCache.get(ocorrencia.userId)!;
-            return {
-              ...ocorrencia,
-              authorName: cachedUser.name,
-              apartmentNumber: cachedUser.apt,
-              authorAvatarUrl: cachedUser.avatarUrl,
-            };
+            return { ...ocorrencia, authorName: cachedUser.name, apartmentNumber: cachedUser.apt, authorAvatarUrl: cachedUser.avatarUrl };
           }
 
           const userResponse = await fetch(`${API_URL}/users/${ocorrencia.userId}`, { headers });
           if (!userResponse.ok) throw new Error();
           const userData: UserData = await userResponse.json();
 
-          const apartmentResponse = await fetch(
-            `${API_URL}/apartments/${userData.apartmentId}`,
-            { headers }
-          );
+          const apartmentResponse = await fetch(`${API_URL}/apartments/${userData.apartmentId}`, { headers });
           if (!apartmentResponse.ok) throw new Error();
           const apartmentData: ApartmentData = await apartmentResponse.json();
 
@@ -325,37 +297,19 @@ export default function OcorrenciasScreen() {
               const raw = avatarJson.avatarUrl || avatarJson.url || avatarJson.avatar;
               avatarUrl = buildAvatarUrl(raw);
             }
-          } catch (e) {
-            avatarUrl = undefined;
-          }
+          } catch (e) { avatarUrl = undefined; }
 
           userCache.set(ocorrencia.userId, { name: userData.fullName, apt: apartmentData.number, avatarUrl });
 
-          return {
-            ...ocorrencia,
-            authorName: userData.fullName,
-            apartmentNumber: apartmentData.number,
-            authorAvatarUrl: avatarUrl,
-          };
+          return { ...ocorrencia, authorName: userData.fullName, apartmentNumber: apartmentData.number, authorAvatarUrl: avatarUrl };
         } catch (e) {
-          return {
-            ...ocorrencia,
-            authorName: 'Morador não identificado',
-            apartmentNumber: 'N/A',
-            authorAvatarUrl: undefined,
-          };
+          return { ...ocorrencia, authorName: 'Morador', apartmentNumber: '-', authorAvatarUrl: undefined };
         }
       });
 
       const enrichedData = await Promise.all(enrichedDataPromises);
-      setOcorrencias(
-        enrichedData.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-      );
+      setOcorrencias(enrichedData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (error) {
-      console.error('Erro ao buscar ocorrências:', error);
       Alert.alert('Erro', 'Não foi possível carregar as ocorrências.');
     } finally {
       setLoading(false);
@@ -379,40 +333,23 @@ export default function OcorrenciasScreen() {
         return;
       }
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      };
-
+      const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
       const decodedToken = jwtDecode<DecodedToken>(token);
       const userId = decodedToken.userId;
 
-      const userResponse = await fetch(`${API_URL}/users/${userId}`, {
-        headers,
-      });
-      if (!userResponse.ok)
-        throw new Error('Não foi possível encontrar os dados do usuário.');
+      const userResponse = await fetch(`${API_URL}/users/${userId}`, { headers });
+      if (!userResponse.ok) throw new Error('Erro usuário.');
       const userData: UserData = await userResponse.json();
       const { apartmentId } = userData;
 
-      if (!apartmentId)
-        throw new Error('Usuário não associado a um apartamento.');
+      if (!apartmentId) throw new Error('Sem apartamento.');
 
-      const apartmentResponse = await fetch(
-        `${API_URL}/apartments/${apartmentId}`,
-        { headers }
-      );
-      if (!apartmentResponse.ok)
-        throw new Error('Não foi possível encontrar os dados do apartamento.');
+      const apartmentResponse = await fetch(`${API_URL}/apartments/${apartmentId}`, { headers });
+      if (!apartmentResponse.ok) throw new Error('Erro apartamento.');
       const apartmentData: ApartmentData = await apartmentResponse.json();
       const { condominiumId } = apartmentData;
 
-      const body = {
-        title,
-        description,
-        type,
-        condominiumId,
-      };
+      const body = { title, description, type, condominiumId };
 
       const occurrenceResponse = await fetch(`${API_URL}/occurrences`, {
         method: 'POST',
@@ -420,25 +357,12 @@ export default function OcorrenciasScreen() {
         body: JSON.stringify(body),
       });
 
-      console.log('Occurrence Response Status:', occurrenceResponse.status);
-      const responseParsed = await occurrenceResponse.json();
-      console.log('Occurrence Response Body:', responseParsed);
-
-      if (!occurrenceResponse.ok) {
-        const serverMessage = responseParsed?.message || responseParsed?.error || JSON.stringify(responseParsed);
-        console.error('Erro ao criar ocorrência:', serverMessage);
-        Alert.alert('Erro ao publicar', serverMessage);
-        throw new Error(serverMessage);
-      }
+      if (!occurrenceResponse.ok) throw new Error('Erro ao publicar.');
 
       Alert.alert('Sucesso!', 'Sua ocorrência foi publicada.');
       await fetchOcorrencias();
     } catch (error: any) {
-      console.error('Erro ao publicar ocorrência:', error);
-      Alert.alert(
-        'Erro ao Publicar',
-        error.message || 'Não foi possível publicar a ocorrência.'
-      );
+      Alert.alert('Erro', error.message || 'Não foi possível publicar.');
     } finally {
       setIsPosting(false);
     }
@@ -451,30 +375,43 @@ export default function OcorrenciasScreen() {
   if (loading && !ocorrencias.length) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color="#0095FF" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: '#F4F6F8' }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: '#F8F9FA' }]}>
+      {/* Remove header padrão do Expo */}
       <Stack.Screen options={{ headerShown: false }} />
+
+      {/* HEADER PERSONALIZADO */}
+      <View style={styles.customHeader}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+           {/* COR DO BOTÃO VOLTAR */}
+           <Feather name="chevron-left" size={28} color="#1A1A1A" />
+        </TouchableOpacity>
+        
+        <Text style={styles.headerTitleText}>Ocorrências</Text>
+        
+        {/* View vazia para balancear o título no centro */}
+        <View style={styles.backButton} />
+      </View>
+
       <View style={{ flex: 1 }}>
         <FlatList
           data={ocorrencias}
           renderItem={renderOcorrencia}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
-            <>
-              <NovaOcorrenciaInput onPublicar={handlePublicar} isPosting={isPosting} avatarUrl={currentUserAvatar} />
-                <View style={styles.headerContainerComSombra}>
-                  <Text style={styles.headerTitle}>
-                    {userType === 'ADMIN' ? 'Todas as Ocorrências' : 'Minhas Ocorrências'}
-                  </Text>
-                </View>
-            </>
+            <View style={styles.headerContent}>
+               <NovaOcorrenciaInput onPublicar={handlePublicar} isPosting={isPosting} avatarUrl={currentUserAvatar} />
+               
+               <Text style={styles.listTitle}>
+                  {userType === 'ADMIN' ? 'Todas as Publicações' : 'Minhas Publicações'}
+               </Text>
+            </View>
           }
-          ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
           contentContainerStyle={styles.listContentContainer}
           showsVerticalScrollIndicator={false}
           onRefresh={fetchOcorrencias}
@@ -482,9 +419,8 @@ export default function OcorrenciasScreen() {
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>
-                  Nenhuma ocorrência encontrada.
-                </Text>
+                <Feather name="clipboard" size={40} color="#E0E0E0" style={{ marginBottom: 8 }} />
+                <Text style={styles.emptyText}>Nenhuma ocorrência encontrada.</Text>
               </View>
             ) : null
           }
@@ -496,174 +432,167 @@ export default function OcorrenciasScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
+  safeArea: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' },
+  listContentContainer: { paddingHorizontal: 16, paddingBottom: 100 },
+  
+  headerContent: { 
+    marginTop: 16, 
+    marginBottom: 8 
   },
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4F6F8',
-  },
-  listContentContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 120,
-  },
-  headerContainerComSombra: {
-    backgroundColor: '#F4F6F8',
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  inputCard: {
-    marginBottom: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 16,
-  },
-  textInputWrapper: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  textInput: {
-    backgroundColor: '#F4F6F8',
-    color: '#111',
-    fontSize: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E6EBF0',
-    minHeight: 50,
-  },
-  titleInput: {
-    fontWeight: '700',
-    minHeight: 44,
-    fontSize: 17,
-    paddingVertical: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#EFEFEF',
-    marginVertical: 8,
-  },
-  cardActions: {
-    justifyContent: 'flex-end',
-    paddingRight: 12,
-    paddingBottom: 12,
-  },
-  publicarButton: {
-    borderRadius: 20,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#007AFF',
-  },
-  avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-  },
-  autor: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  apartment: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#111',
-    marginBottom: 4,
-  },
-  texto: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#111',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#444',
-  },
-  bottomMenuContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    height: 60,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-    paddingTop: 5,
-  },
-  emptyContainer: {
-    marginTop: 50,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  pickerField: {
+
+  // --- HEADER CUSTOMIZADO ---
+  customHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F4F6F8',
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    backgroundColor: '#F8F9FA',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleText: {
+    fontSize: 17,
+    fontWeight: '400',
+    color: '#1A1A1A',
+    textAlign: 'center',
+  },
+  // --------------------------
+
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  
+  listTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#1A1A1A',
+      marginTop: 24,
+      marginBottom: 12,
+      marginLeft: 4
+  },
+
+  // Input Clean
+  inputCardClean: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     borderWidth: 1,
-    borderColor: '#E6EBF0',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderColor: '#F0F0F0'
   },
-  pickerText: {
-    color: '#111',
-    fontSize: 15,
+  inputContent: {
+      padding: 16,
   },
-  pickerChevron: {
-    color: '#777',
-    marginLeft: 8,
+  inputClean: {
+      backgroundColor: '#FFFFFF',
+      marginBottom: 12,
+      fontSize: 14,
+  },
+  pickerButton: {
+      borderWidth: 1,
+      borderColor: '#E0E0E0',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+      backgroundColor: '#FFFFFF'
+  },
+  pickerButtonText: {
+      color: '#1A1A1A',
+      fontSize: 14,
+  },
+  publishButton: {
+      borderRadius: 30,
+      paddingVertical: 6,
+      elevation: 2,
+      shadowColor: '#0095FF',
+      shadowOpacity: 0.3,
+  },
+
+  // Card Clean
+  cardClean: {
+    borderRadius: 16,
+    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden'
+  },
+  cardContentWrapper: {
+      padding: 16
+  },
+  cardHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start'
+  },
+  avatarSmall: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+  },
+  authorName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#1A1A1A'
+  },
+  aptInfo: {
+      fontSize: 12,
+      color: '#8E8E93'
+  },
+  timeAgo: {
+      fontSize: 11,
+      color: '#8E8E93',
+      marginTop: 2
+  },
+  cardTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: '#1A1A1A',
+      marginBottom: 4
+  },
+  cardDesc: {
+      fontSize: 14,
+      color: '#555',
+      lineHeight: 20
+  },
+  typeBadge: {
+      backgroundColor: '#F0F9FF',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+  },
+  typeText: {
+      color: '#0095FF',
+      fontSize: 10,
+      fontWeight: 'bold',
+      textTransform: 'uppercase'
+  },
+
+  emptyContainer: {
+    marginTop: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#8E8E93',
   },
 });
-
-const buildAvatarUrl = (avatarPath?: string | null): string | undefined => {
-  if (!avatarPath) return undefined;
-  if (avatarPath.startsWith('http')) return avatarPath;
-  if (avatarPath.startsWith('/')) return `${API_URL}${avatarPath}`;
-  return avatarPath;
-};
