@@ -141,8 +141,9 @@ const OcorrenciaCard: React.FC<OcorrenciaCardProps> = ({ item }) => {
                   )}
                   <View style={{ marginLeft: 10 }}>
                       <Text style={styles.authorName}>{formatAuthorName(item.authorName)}</Text>
+                      {/* AQUI FOI FEITA A ALTERAÇÃO: REMOVIDO O APARTAMENTO */}
                       <Text style={styles.aptInfo}>
-                        Apt {item.apartmentNumber} • {getTranslatedType(item.type)}
+                        {getTranslatedType(item.type)}
                       </Text>
                   </View>
               </View>
