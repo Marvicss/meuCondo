@@ -11,14 +11,14 @@
     "ios": {
       "supportsTablet": true
     },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.marvicss.meuCondo"
+  "android": {
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+      "backgroundColor": "#0095FF" 
     },
+  "edgeToEdgeEnabled": true,
+  "package": "com.marvicss.meuCondo"
+},
     "web": {
       "bundler": "metro",
       "output": "static",
