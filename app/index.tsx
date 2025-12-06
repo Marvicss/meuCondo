@@ -1,9 +1,18 @@
 import { useRouter } from 'expo-router';
 // 1. Importe o componente 'Image'
-import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
+import React, { useEffect } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function Inicio() {
   const router = useRouter();
+
+  // Splash inicial: mostra a logo e navega para login
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.replace('/login');
+    }, 1500); // ajuste o tempo conforme sua preferência
+    return () => clearTimeout(timer);
+  }, [router]);
 
   return (
     <View style={styles.container}>

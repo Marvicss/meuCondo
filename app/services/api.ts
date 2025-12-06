@@ -1,19 +1,42 @@
 // services/api.ts
 
+import { API_URL, API_URL_DEV } from '@/constants/envs';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'https://meu-condo.vercel.app', // Sua URL base
+  baseURL: `${API_URL}`, // Sua URL base
 });
 
-// Futuramente, você pode adicionar interceptors para injetar o token de autenticação
-// em todas as requisições que precisam.
-// api.interceptors.request.use(async (config) => {
-//   const token = await getTokenFromStorage(); // Função para pegar token do AsyncStorage
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
+const apiDev = axios.create({
+  baseURL: `${API_URL_DEV}`, // Sua URL base
+});
+
+// Interceptor para anexar token automaticamente
+api.interceptors.request.use(async (config) => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers['Content-Type'] = config.headers['Content-Type'] || 'application/json';
+    }
+  } catch (e) {
+    // silenciosamente ignora; requisição prossegue sem token
+  }
+  return config;
+});
+
+// Opcional: tratamento de respostas 401
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    if (error?.response?.status === 401) {
+      // Você pode adicionar lógica para redirecionar ao login ou limpar sessão
+      // Ex.: await AsyncStorage.removeItem('token');
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

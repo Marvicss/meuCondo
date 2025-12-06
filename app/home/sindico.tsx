@@ -174,7 +174,7 @@ const Home = () => {
               
               {/* Texto do Cargo */}
               <Text variant="labelMedium" style={{ color: '#0099FF', fontWeight: 'bold', textTransform: 'uppercase', marginTop: -2 }}>
-                  Morador
+                  Síndico
               </Text>
           </View>
         </View>

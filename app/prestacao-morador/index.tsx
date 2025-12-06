@@ -1,93 +1,119 @@
+import { API_URL } from '@/constants/envs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Appbar, Button, Card, FAB, Text, TextInput, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Appbar, Card, Chip, Divider, Text, useTheme } from 'react-native-paper';
 import PieChart from 'react-native-pie-chart';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomMenu from '../../components/BottomMenu';
+import CustomHeader from '../../components/CustomHeader';
 
-// --- DEFINIÇÃO DE TIPOS ---
-interface Expense { id: string; date: string; amount: number; title: string; type: 'EXPENSE' | 'INCOME'; }
+// --- TIPOS ---
+interface Expense {
+  id: string;
+  date: string;
+  createdAt?: string;
+  amount: number;
+  title: string;
+  description?: string;
+  type: 'EXPENSE' | 'INCOME';
+}
+
 interface ChartDataItem { label: string; value: number; color: string; }
-interface Condominium { id: string; name: string; }
 interface DecodedToken { userId: string; email: string; userType: string; }
 interface Customer { id: string; fullName: string; userType: string; }
 
-// --- COMPONENTES VISUAIS ---
+// Cores Modernas e Suaves
+const COLORS = {
+  income: '#90CAF9', // Verde iOS
+  expense: '#0095FF', // Vermelho iOS
+  bg: '#F8F9FA' // Fundo levemente cinza para destacar os cards brancos
+};
+
+// --- COMPONENTE ExpenseCard (ULTRA CLEAN) ---
 const ExpenseCard = ({ expense }: { expense: Expense }) => {
   const theme = useTheme();
-  const isIncome = expense.type === 'INCOME';
   
-  // Tons mais vivos, iguais em claro/escuro para manter consistência visual
-  const incomeBackground = '#0EA5A5'; // teal vibrante
-  const expenseBackground = '#EF4444'; // vermelho vibrante
-  const cardColor = isIncome ? incomeBackground : expenseBackground;
-  const textColor = '#FFFFFF';
-
   const formatCurrency = (value: number) => `R$ ${Number(value).toFixed(2).replace('.', ',')}`;
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  
+  const tipoNormalizado = expense.type ? expense.type.toUpperCase() : 'EXPENSE';
+  const isIncome = tipoNormalizado === 'INCOME' || tipoNormalizado === 'RECEITA';
+  const color = isIncome ? COLORS.income : COLORS.expense;
+  const dataExibicao = expense.date || expense.createdAt || new Date().toISOString();
+
+  const showDetails = () => {
+    Alert.alert(
+      expense.title,
+      expense.description || "Sem descrição detalhada.",
+      [{ text: "Fechar", style: 'cancel' }]
+    );
+  };
 
   return (
-    <Card style={{ marginBottom: 12, backgroundColor: cardColor }}>
-      <Card.Content>
-        <View style={styles.cardTopRow}>
-          <Text style={[{ color: textColor, flex: 1, fontWeight: 'bold' }, theme.fonts.labelLarge]}>{expense.title}</Text>
-          <Text style={[{ color: textColor, fontWeight: 'bold' }, theme.fonts.titleMedium]}>
-            {isIncome ? '+' : '-'} {formatCurrency(expense.amount)}
-          </Text>
+    <TouchableOpacity onPress={showDetails} activeOpacity={0.7}>
+        <View style={styles.cardRow}>
+            {/* Ícone/Indicador */}
+            <View style={[styles.iconBox, { backgroundColor: isIncome ? '#90CAF9' : '#0095FF' }]}>
+                <Text style={{ fontSize: 18 }}>{isIncome ? '↓' : '↑'}</Text>
+            </View>
+
+            {/* Informações Principais */}
+            <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, fontWeight: '500' }}>
+                    {expense.title}
+                </Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.outline, marginTop: 2 }}>
+                    {new Date(dataExibicao).toLocaleDateString('pt-BR')}
+                </Text>
+            </View>
+
+            {/* Valor */}
+            <Text variant="titleMedium" style={{ color: color, fontWeight: '600' }}>
+                {isIncome ? '+' : '-'} {formatCurrency(expense.amount)}
+            </Text>
         </View>
-        <Text style={[{ color: textColor }, theme.fonts.bodySmall]}>{formatDate(expense.date)}</Text>
-      </Card.Content>
-    </Card>
+        <Divider style={{ marginHorizontal: 16, backgroundColor: '#F0F0F0' }} />
+    </TouchableOpacity>
   );
 };
 
-// Paleta fixa para gráficos igual à imagem enviada
-const CHART_COLORS = [
-  '#11d82bff', // Produto A
-  '#eeea0fff', // Produto B
-  '#ff3333ff', // Produto C
-  '#0095FF', // Produto D
-  '#F6D47C', // Produto E
-];
-
+// --- COMPONENTE GRÁFICO MINIMALISTA ---
 const GeneralExpensesChart = ({ data }: { data: ChartDataItem[] }) => {
   const theme = useTheme();
-  if (!data || data.length === 0) {
-    return (
-      <Card style={{ backgroundColor: theme.colors.surface, padding: 16, marginTop: 20 }}>
-        <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant }}>
-          Sem dados de despesas para exibir o gráfico.
-        </Text>
-      </Card>
-    );
-  }
 
-  const slices = data.map((item, index) => ({ value: item.value, color: CHART_COLORS[index % CHART_COLORS.length] }));
+  if (!data || data.length === 0) return null;
+
+  const slicesForChart = data.map(item => ({ value: item.value, color: item.color }));
 
   return (
-    <Card style={{ backgroundColor: theme.colors.surface, padding: 16, marginTop: 20, alignItems: 'center' }}>
-      <Text style={[styles.chartTitle, { color: theme.colors.onSurface }]}>Resumo dos Gastos</Text>
-      <View style={styles.chartAndLegendWrapper}>
-        <PieChart widthAndHeight={150} series={slices} />
-        <View style={styles.legendContainer}>
+    <View style={styles.chartContainer}>
+      <Text variant="titleMedium" style={{ marginBottom: 20, fontWeight: '500', color: theme.colors.onSurface, textAlign: 'center' }}>
+          Resumo Financeiro
+      </Text>
+      
+      <View style={styles.chartContent}>
+        <PieChart widthAndHeight={140} series={slicesForChart} />
+        
+        {/* Legenda Limpa ao Lado */}
+        <View style={{ marginLeft: 24 }}>
           {data.map((item, index) => (
-            <View key={item.label} style={styles.legendItem}>
-              <View style={[styles.legendColorBox, { backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }]} />
-              <Text style={[styles.legendText, { color: theme.colors.onSurfaceVariant, flexShrink: 1 }]}>
-                {`${item.label} (${item.value.toFixed(1)}%)`}
-              </Text>
-            </View>
+              <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: item.color, marginRight: 8 }} />
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>{item.label}</Text>
+                  <Text variant="bodyMedium" style={{ marginLeft: 8, fontWeight: 'bold', color: theme.colors.onSurface }}>
+                      {Math.round((item.value / data.reduce((acc, c) => acc + c.value, 0)) * 100)}%
+                  </Text>
+              </View>
           ))}
         </View>
       </View>
-    </Card>
+    </View>
   );
 };
 
-// --- A TELA PRINCIPAL ---
+// --- TELA PRINCIPAL ---
 export default function PrestacaoDeContasScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -95,10 +121,12 @@ export default function PrestacaoDeContasScreen() {
   const [originalData, setOriginalData] = useState<Expense[]>([]);
   const [filteredData, setFilteredData] = useState<Expense[]>([]);
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
-  const [monthYearFilter, setMonthYearFilter] = useState<string>('');
+  
+  // Filtros: 'todos' | 'receita' | 'despesa'
+  const [filter, setFilter] = useState<'todos' | 'receita' | 'despesa'>('todos');
+  
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [customer, setCustomer] = useState<Customer | null>(null);
 
   const fetchAccountabilityData = useCallback(async () => {
     setLoading(true);
@@ -106,173 +134,164 @@ export default function PrestacaoDeContasScreen() {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token) {
-        Alert.alert("Acesso Negado", "Você precisa fazer login para ver esta página.");
+        Alert.alert("Acesso Negado", "Você precisa fazer login.");
         router.replace('/login');
         return;
       }
-
       const decoded: DecodedToken = jwtDecode(token);
-
-      const [userResponse, condosResponse] = await Promise.all([
-        fetch(`https://meu-condo.vercel.app/users/${decoded.userId}`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch("https://meu-condo.vercel.app/condominiums/", { headers: { "Authorization": `Bearer ${token}` } })
-      ]);
-
-      if (!userResponse.ok) throw new Error("Não foi possível buscar dados do usuário.");
-      const userData: Customer = await userResponse.json();
-      setCustomer(userData);
-
-      if (!condosResponse.ok) throw new Error("Não foi possível buscar a lista de condomínios.");
-      const condominiums: Condominium[] = await condosResponse.json();
-      if (!condominiums || condominiums.length === 0) throw new Error("Nenhum condomínio encontrado.");
-
-      const condominiumIdParaTeste = condominiums[0].id;
-
+      
+      const condosResponse = await fetch(`${API_URL}/condominiums/`, { headers: { "Authorization": `Bearer ${token}` } });
+      const condominiums = await condosResponse.json();
+      
+      if (!condominiums || condominiums.length === 0) {
+          setOriginalData([]);
+          setLoading(false);
+          return;
+      }
+      
       const expensesResponse = await fetch(
-        `https://meu-condo.vercel.app/accountabilities/condominium/${condominiumIdParaTeste}`,
+        `${API_URL}/accountabilities/condominium/${condominiums[0].id}`,
         { headers: { "Authorization": `Bearer ${token}` } }
       );
-      if (!expensesResponse.ok) throw new Error("Não foi possível buscar as prestações de contas.");
-
+      
       setOriginalData(await expensesResponse.json());
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Um erro desconhecido ocorreu.";
-      setError(errorMessage);
+      setError("Erro ao carregar dados.");
     } finally {
       setLoading(false);
     }
   }, [router]);
 
-  // ✅ Correção: useFocusEffect com função síncrona
   useFocusEffect(
     useCallback(() => {
       fetchAccountabilityData();
     }, [fetchAccountabilityData])
   );
 
+  // Filtro
   useEffect(() => {
-    if (monthYearFilter.trim() === '') {
-      setFilteredData(originalData);
-    } else {
-      const filtered = originalData.filter(item => {
-        const itemDate = new Date(item.date);
-        const formattedDate = `${(itemDate.getMonth() + 1).toString().padStart(2, '0')}/${itemDate.getFullYear()}`;
-        return formattedDate.includes(monthYearFilter);
-      });
-      setFilteredData(filtered);
-    }
-  }, [monthYearFilter, originalData]);
+    let currentFiltered = originalData;
+    if (filter === 'receita') currentFiltered = currentFiltered.filter(item => item.type === 'INCOME');
+    else if (filter === 'despesa') currentFiltered = currentFiltered.filter(item => item.type === 'EXPENSE');
+    setFilteredData(currentFiltered);
+  }, [originalData, filter]);
 
+  // Gráfico (Sempre Receita vs Despesa)
   useEffect(() => {
-    const expensesOnly = filteredData.filter(item => item.type === 'EXPENSE');
-    if (expensesOnly.length === 0) {
-      setChartData([]);
-      return;
-    }
+    if (filteredData.length === 0) { setChartData([]); return; }
 
-    const grouped = expensesOnly.reduce((acc, expense) => {
-      const key = expense.title;
-      if (!acc[key]) acc[key] = { total: 0, color: `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}` };
-      acc[key].total += expense.amount;
-      return acc;
-    }, {} as { [key: string]: { total: number, color: string } });
+    const totalIncome = filteredData.filter(i => i.type === 'INCOME').reduce((acc, curr) => acc + curr.amount, 0);
+    const totalExpense = filteredData.filter(i => i.type === 'EXPENSE').reduce((acc, curr) => acc + curr.amount, 0);
 
-    const totalAmount = Object.values(grouped).reduce((sum, item) => sum + item.total, 0);
-    if (totalAmount === 0) {
-      setChartData([]);
-      return;
-    }
-
-    const calculatedChartData = Object.entries(grouped).map(([label, data]) => ({
-      label,
-      value: (data.total / totalAmount) * 100,
-      color: data.color
-    }));
-    setChartData(calculatedChartData);
+    const newChartData: ChartDataItem[] = [];
+    if (totalIncome > 0) newChartData.push({ label: 'Receitas', value: totalIncome, color: COLORS.income });
+    if (totalExpense > 0) newChartData.push({ label: 'Despesas', value: totalExpense, color: COLORS.expense });
+    
+    setChartData(newChartData);
   }, [filteredData]);
 
   if (loading) {
     return (
-      <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.centerScreen, { backgroundColor: COLORS.bg }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
-  if (error) {
-    return (
-      <View style={[styles.centerScreen, { backgroundColor: theme.colors.background }]}>
-        <Text style={{color: theme.colors.error, marginBottom: 10, textAlign: 'center'}}>{error}</Text>
-        <Button mode="contained" onPress={fetchAccountabilityData}>Tentar Novamente</Button>
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header mode="center-aligned" style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.Content title="Prestação de Contas" titleStyle={{ color: theme.colors.onSurface }} />
-      </Appbar.Header>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.bg }]}>
+      <CustomHeader mode="center-aligned" style={{ backgroundColor: COLORS.bg, elevation: 0 }}>
+        <Appbar.Content title="Prestação de Contas" titleStyle={{ color: theme.colors.onSurface, fontWeight: '600', fontSize: 20 }} />
+      </CustomHeader>
 
       <View style={styles.mainContent}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Card style={{ backgroundColor: theme.colors.surface, marginBottom: 24 }}>
-            <Card.Content>
-              <TextInput 
-                label="Pesquisar por Mês/Ano (ex: 06/2025)"
-                value={monthYearFilter}
-                onChangeText={setMonthYearFilter}
-                mode="outlined"
-              />
-            </Card.Content>
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          
+          {/* --- FILTROS CLEAN (CHIPS DE CONTORNO) --- */}
+          <View style={styles.filtersContainer}>
+              <Chip 
+                  selected={filter === 'receita'} 
+                  onPress={() => setFilter(filter === 'receita' ? 'todos' : 'receita')}
+                  showSelectedOverlay
+                  mode="outlined"
+                  style={styles.chip}
+                  textStyle={{ fontWeight: '500' }}
+              >
+                  Receitas
+              </Chip>
+              <Chip 
+                  selected={filter === 'despesa'} 
+                  onPress={() => setFilter(filter === 'despesa' ? 'todos' : 'despesa')}
+                  showSelectedOverlay
+                  mode="outlined"
+                  style={styles.chip}
+                  textStyle={{ fontWeight: '500' }}
+              >
+                  Despesas
+              </Chip>
+          </View>
+
+          {/* Gráfico Clean */}
+          <GeneralExpensesChart data={chartData} />
+
+          <Text variant="titleMedium" style={{ marginLeft: 4, marginBottom: 12, fontWeight: '600', color: theme.colors.onSurface }}>
+            Lançamentos
+          </Text>
+
+          {/* Lista Clean (Card Único com Divisores) */}
+          <Card style={styles.listCard}>
+             {filteredData.length > 0 ? (
+                filteredData.map((item) => <ExpenseCard key={item.id} expense={item} />)
+             ) : (
+                <View style={{ padding: 30, alignItems: 'center' }}>
+                    <Text variant="bodyMedium" style={{ color: theme.colors.outline }}>
+                        Nenhum lançamento encontrado.
+                    </Text>
+                </View>
+             )}
           </Card>
 
-          <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>Movimentações</Text>
-
-          {filteredData.length > 0 ? (
-            filteredData.map((item) => <ExpenseCard key={item.id} expense={item} />)
-          ) : (
-            <Text style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, padding: 20 }}>
-              Nenhuma movimentação encontrada para o período.
-            </Text>
-          )}
-
-          <GeneralExpensesChart data={chartData} />
         </ScrollView>
-
-        {customer?.userType === 'ADMIN' && (
-          <FAB
-            icon="plus"
-            style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-            onPress={() => router.push('/addAccountability')}
-            color={theme.colors.onPrimary}
-          />
-        )}
-
+        
         <BottomMenu />
       </View>
     </SafeAreaView>
   );
 }
 
-// --- ESTILOS ---
 const styles = StyleSheet.create({
-  container: { padding: 16, paddingBottom: 40 },
-  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  safeArea: { flex: 1 },
   mainContent: { flex: 1, justifyContent: 'space-between' },
-  sectionTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
-  chartTitle: { fontSize: 20, fontWeight: 'bold' },
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  chartAndLegendWrapper: { flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-around' },
-  legendContainer: { marginLeft: 20, flex: 1 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  legendColorBox: { width: 14, height: 14, borderRadius: 2, marginRight: 8 },
-  legendText: { fontSize: 12 },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 80,
+  scrollContainer: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 120 },
+  centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  
+  // Filtros
+  filtersContainer: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  chip: { flex: 1, backgroundColor: 'transparent' }, // Fundo transparente para ficar clean
+
+  // Gráfico
+  chartContainer: { marginBottom: 32, alignItems: 'center' },
+  chartContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+
+  // Lista Clean
+  listCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    elevation: 0, // Sem sombra pesada
+    borderWidth: 1, // Borda muito fina e sutil
+    borderColor: '#F0F0F0',
+    overflow: 'hidden'
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF'
+  },
+  iconBox: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
   },
 });

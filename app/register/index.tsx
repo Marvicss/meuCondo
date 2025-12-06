@@ -1,3 +1,4 @@
+import { API_URL } from "@/constants/envs";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -19,7 +20,7 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     try {
-      const response = await fetch("https://meu-condo.vercel.app/users/", {
+      const response = await fetch(`${API_URL}/users/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -114,9 +115,10 @@ export default function RegisterScreen() {
             <Text style={styles.buttonText}>Cadastrar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.roleButton} onPress={() => setUserType("USER")}>
-            <Text style={styles.roleText}>Sou Morador</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/login')}>
+            <Text style={styles.backText}>Voltar para o Login</Text>
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -124,6 +126,18 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  backButton: {
+  marginTop: 20,
+  padding: 12,
+  alignItems: "center",
+},
+
+backText: {
+  color: "#fff",
+  fontSize: 16,
+  fontWeight: "500",
+},
+
   container: {
     flex: 1,
     backgroundColor: "#0095FF",

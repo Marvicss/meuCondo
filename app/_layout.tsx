@@ -1,7 +1,6 @@
-
-import { useColorScheme } from 'react-native';
 import { Stack } from 'expo-router';
-import { MD3LightTheme, MD3DarkTheme, PaperProvider, Portal } from 'react-native-paper';
+import { useColorScheme } from 'react-native';
+import { MD3DarkTheme, MD3LightTheme, PaperProvider, Portal } from 'react-native-paper';
 import { CoresClaras, CoresEscuras } from '../constants/Colors';
 
 export default function RootLayout() {
@@ -29,18 +28,25 @@ export default function RootLayout() {
     <PaperProvider theme={temaDoApp}>
       <Portal.Host>
   
-        <Stack>
-
+        <Stack initialRouteName="index">
+          <Stack.Screen name="profile/index" options={{ headerShown: false }} />
           <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="login/index" options={{ headerShown: false }} />
           <Stack.Screen name="register/index" options={{ headerShown: false }} />
           <Stack.Screen name="home/index" options={{ headerShown: false }} />
+          <Stack.Screen name="home/sindico" options={{ headerShown: false }} />
           <Stack.Screen name="reservas/morador" options={{ headerShown: false }} />
           <Stack.Screen name="reservas/sindico" options={{ headerShown: false }} />
+          <Stack.Screen name="votation/morador" options={{ headerShown: false }} />
+          <Stack.Screen name="votation/sindico" options={{ headerShown: false }} />
+          <Stack.Screen name="news-sindico/index" options={{ headerShown: false }} />
+          <Stack.Screen name="news-sindico/adicionar-aviso" options={{ headerShown: false }} />
           <Stack.Screen name="addAccountability/index" options={{ headerShown: false }} />
           <Stack.Screen name="prestacao-morador/index" options={{ headerShown: false }} />
           <Stack.Screen name="parking/index" options={{ headerShown: false }} />
+          <Stack.Screen name="parking-sindico/index" options={{ headerShown: false }} />
+          <Stack.Screen name="parking-sindico/register-space" options={{ headerShown: false }} />
           <Stack.Screen name="notice/index" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
         </Stack>
       </Portal.Host>
     </PaperProvider>

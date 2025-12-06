@@ -6,18 +6,19 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "meucondo",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+  "android": {
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+      "backgroundColor": "#0095FF" 
     },
+  "edgeToEdgeEnabled": true,
+  "package": "com.marvicss.meuCondo"
+},
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -37,6 +38,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3fd82db0-e6da-4ab1-81e5-49bdd07d818e"
+      }
     }
   }
 }
